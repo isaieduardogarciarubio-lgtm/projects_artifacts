@@ -604,6 +604,8 @@
       }
     }
 
+    @keyframes spin-loader { to { transform: rotate(360deg); } }
+
     @media (prefers-reduced-motion: reduce) {
       * {
         transition: none !important;
@@ -617,6 +619,9 @@
   </style>
 </head>
 <body>
+  <div id="loading-overlay" style="position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.3s;">
+    <div style="width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin-loader 0.9s linear infinite;"></div>
+  </div>
   <!-- STAGE: ESCÁNER -->
   <section class="stage active" id="stage-scanner" data-state="valid">
     <nav class="nav">
@@ -1043,6 +1048,8 @@
         await this.loadDevices();
         this.bindEvents();
         this.applyScanMode();
+        const overlay = document.getElementById("loading-overlay");
+        if (overlay) { overlay.style.opacity = "0"; setTimeout(() => overlay.remove(), 300); }
       }
 
       loadLogo() {
@@ -1489,10 +1496,6 @@
               : "";
             return `
               <div class="device-card">
-                <div class="row">
-                  <span class="k">ID</span>
-                  <span class="v">${d.id.slice(0, 20)}...</span>
-                </div>
                 <div class="row">
                   <span class="k">Descripción</span>
                   <span class="v">${d.descripcion || "-"}</span>
