@@ -611,6 +611,46 @@
       border-top: 1px solid var(--border);
     }
 
+    .scan-mode-toggle {
+      display: flex;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--r-pill);
+      padding: 4px;
+      margin-bottom: 8px;
+    }
+
+    .scan-mode-btn {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      border: none;
+      background: transparent;
+      color: var(--text-sub);
+      font-family: inherit;
+      border-radius: var(--r-pill);
+      padding: 10px 12px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.16s;
+    }
+
+    .scan-mode-btn svg {
+      flex-shrink: 0;
+    }
+
+    .scan-mode-btn.active {
+      background: var(--text);
+      color: var(--bg);
+    }
+
+    .scan-mode-btn:hover:not(.active) {
+      color: var(--text);
+    }
+
     .scanner-result {
       background: var(--surface-2);
       border: 1px solid var(--border);
@@ -1075,17 +1115,20 @@
             <span>Escanear QR del Driver</span>
           </div>
 
-          <div class="scanner-container">
-            <video id="scanner-video"></video>
-            <div class="scanner-controls">
-              <button class="btn btn-secondary" id="btn-start-scanner">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9a2 2 0 012-2h1.2a2 2 0 001.6-.8l.4-.6a2 2 0 011.6-.8h4.4a2 2 0 011.6.8l.4.6a2 2 0 001.6.8H19a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><circle cx="12" cy="13" r="3.5"/></svg>
-                Iniciar escáner
-              </button>
-              <button class="btn btn-ghost" id="btn-stop-scanner" style="display: none;">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg>
-                Detener
-              </button>
+          <div class="scan-mode-toggle">
+            <button type="button" class="scan-mode-btn active" id="btn-driver-scanmode-camera" data-scan-mode="camera">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9a2 2 0 012-2h1.2a2 2 0 001.6-.8l.4-.6a2 2 0 011.6-.8h4.4a2 2 0 011.6.8l.4.6a2 2 0 001.6.8H19a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><circle cx="12" cy="13" r="3.5"/></svg>
+              <span>Cámara</span>
+            </button>
+            <button type="button" class="scan-mode-btn" id="btn-driver-scanmode-handheld" data-scan-mode="handheld">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18.01"/></svg>
+              <span>Handheld</span>
+            </button>
+          </div>
+
+          <div id="driver-scanner-body">
+            <div class="scanner-container">
+              <video id="scanner-video"></video>
             </div>
           </div>
 
@@ -1126,17 +1169,20 @@
             <span>Escanear QR de un dispositivo ya registrado</span>
           </div>
 
-          <div class="scanner-container">
-            <video id="otro-scanner-video"></video>
-            <div class="scanner-controls">
-              <button type="button" class="btn btn-secondary" id="btn-otro-start-scanner">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9a2 2 0 012-2h1.2a2 2 0 001.6-.8l.4-.6a2 2 0 011.6-.8h4.4a2 2 0 011.6.8l.4.6a2 2 0 001.6.8H19a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><circle cx="12" cy="13" r="3.5"/></svg>
-                Iniciar escáner
-              </button>
-              <button type="button" class="btn btn-ghost" id="btn-otro-stop-scanner" style="display: none;">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg>
-                Detener
-              </button>
+          <div class="scan-mode-toggle">
+            <button type="button" class="scan-mode-btn active" id="btn-otro-scanmode-camera" data-scan-mode="camera">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9a2 2 0 012-2h1.2a2 2 0 001.6-.8l.4-.6a2 2 0 011.6-.8h4.4a2 2 0 011.6.8l.4.6a2 2 0 001.6.8H19a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><circle cx="12" cy="13" r="3.5"/></svg>
+              <span>Cámara</span>
+            </button>
+            <button type="button" class="scan-mode-btn" id="btn-otro-scanmode-handheld" data-scan-mode="handheld">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18.01"/></svg>
+              <span>Handheld</span>
+            </button>
+          </div>
+
+          <div id="otro-scanner-body">
+            <div class="scanner-container">
+              <video id="otro-scanner-video"></video>
             </div>
           </div>
 
@@ -2634,13 +2680,8 @@ var QRCode;
         btnGuardar.addEventListener("click", () => this.guardar());
         btnReset.addEventListener("click", () => this.reset());
 
-        document.getElementById("btn-start-scanner").addEventListener("click", () => {
-          this.startScanner();
-        });
-
-        document.getElementById("btn-stop-scanner").addEventListener("click", () => {
-          this.stopScanner();
-        });
+        this.setupDriverScanner();
+        this.setupOtroScanner();
 
         document
           .getElementById("btn-debug-console")
@@ -2656,14 +2697,6 @@ var QRCode;
           this.otroMode = "nuevo";
           this.readyForDevice = true;
           this.updateFormSteps();
-        });
-
-        document.getElementById("btn-otro-start-scanner").addEventListener("click", () => {
-          this.startOtroScanner();
-        });
-
-        document.getElementById("btn-otro-stop-scanner").addEventListener("click", () => {
-          this.stopOtroScanner();
         });
 
         // Confirmación compartida: "esta persona ya tiene N dispositivo(s)"
@@ -2724,6 +2757,49 @@ var QRCode;
         this._existingOwnerKey = ownerKey;
       }
 
+      setupOtroScanner() {
+        this._otroScanMode = "camera";
+        this.setOtroScanMode("camera");
+
+        document.getElementById("btn-otro-scanmode-camera").addEventListener("click", () =>
+          this.setOtroScanMode("camera")
+        );
+        document.getElementById("btn-otro-scanmode-handheld").addEventListener("click", () =>
+          this.setOtroScanMode("handheld")
+        );
+      }
+
+      setOtroScanMode(mode) {
+        if (mode !== "camera" && mode !== "handheld") return;
+        this._otroScanMode = mode;
+        document.getElementById("btn-otro-scanmode-camera").classList.toggle("active", mode === "camera");
+        document.getElementById("btn-otro-scanmode-handheld").classList.toggle("active", mode === "handheld");
+
+        if (this.otroScanner) {
+          this.otroScanner.stop();
+          this.otroScanner = null;
+        }
+
+        if (mode === "camera") {
+          const body = document.getElementById("otro-scanner-body");
+          body.innerHTML = `<div class="scanner-container"><video id="otro-scanner-video"></video></div>`;
+          this.startOtroScanner();
+        } else {
+          const body = document.getElementById("otro-scanner-body");
+          body.innerHTML = `<input type="text" class="search-input" id="otro-handheld-input" placeholder="Escanea con el lector HID..." style="width:100%;margin-top:8px;" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="none" />`;
+          const input = document.getElementById("otro-handheld-input");
+          input.addEventListener("keydown", (e) => {
+            if (e.key !== "Enter") return;
+            e.preventDefault();
+            const val = input.value.trim();
+            if (!val) return;
+            input.value = "";
+            this.handleOtroDeviceScanned(val);
+          });
+          setTimeout(() => input.focus(), 50);
+        }
+      }
+
       startOtroScanner() {
         if (!this.otroScanner) {
           this.otroScanner = new ScannerEngine();
@@ -2731,17 +2807,12 @@ var QRCode;
 
         const videoEl = document.getElementById("otro-scanner-video");
         this.otroScanner.start(videoEl, (text) => this.handleOtroDeviceScanned(text));
-
-        document.getElementById("btn-otro-start-scanner").style.display = "none";
-        document.getElementById("btn-otro-stop-scanner").style.display = "block";
       }
 
       stopOtroScanner() {
         if (this.otroScanner) {
           this.otroScanner.stop();
         }
-        document.getElementById("btn-otro-start-scanner").style.display = "block";
-        document.getElementById("btn-otro-stop-scanner").style.display = "none";
       }
 
       async handleOtroDeviceScanned(text) {
@@ -3144,6 +3215,52 @@ var QRCode;
         document.getElementById("input-foto").value = "";
       }
 
+      setupDriverScanner() {
+        this._driverScanMode = "camera";
+        this.setDriverScanMode("camera");
+
+        document.getElementById("btn-driver-scanmode-camera").addEventListener("click", () =>
+          this.setDriverScanMode("camera")
+        );
+        document.getElementById("btn-driver-scanmode-handheld").addEventListener("click", () =>
+          this.setDriverScanMode("handheld")
+        );
+      }
+
+      setDriverScanMode(mode) {
+        if (mode !== "camera" && mode !== "handheld") return;
+        this._driverScanMode = mode;
+        document.getElementById("btn-driver-scanmode-camera").classList.toggle("active", mode === "camera");
+        document.getElementById("btn-driver-scanmode-handheld").classList.toggle("active", mode === "handheld");
+
+        if (this.scanner) {
+          this.scanner.stop();
+          this.scanner = null;
+        }
+
+        if (mode === "camera") {
+          const body = document.getElementById("driver-scanner-body");
+          body.innerHTML = `<div class="scanner-container"><video id="scanner-video"></video></div>`;
+          this.startScanner();
+        } else {
+          const body = document.getElementById("driver-scanner-body");
+          body.innerHTML = `<input type="text" class="search-input" id="driver-handheld-input" placeholder="Escanea con el lector HID..." style="width:100%;margin-top:8px;" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="none" />`;
+          const input = document.getElementById("driver-handheld-input");
+          input.addEventListener("keydown", (e) => {
+            if (e.key !== "Enter") return;
+            e.preventDefault();
+            const val = input.value.trim();
+            if (!val) return;
+            input.value = "";
+            const parsed = parseScannedQR(val);
+            if (parsed.type === "driver") {
+              this.handleDriverDetected(parsed.driverId);
+            }
+          });
+          setTimeout(() => input.focus(), 50);
+        }
+      }
+
       startScanner() {
         if (!this.scanner) {
           this.scanner = new ScannerEngine();
@@ -3157,17 +3274,12 @@ var QRCode;
             this.handleDriverDetected(parsed.driverId);
           }
         });
-
-        document.getElementById("btn-start-scanner").style.display = "none";
-        document.getElementById("btn-stop-scanner").style.display = "block";
       }
 
       stopScanner() {
         if (this.scanner) {
           this.scanner.stop();
         }
-        document.getElementById("btn-start-scanner").style.display = "block";
-        document.getElementById("btn-stop-scanner").style.display = "none";
       }
 
       async handleDriverDetected(driverId) {
