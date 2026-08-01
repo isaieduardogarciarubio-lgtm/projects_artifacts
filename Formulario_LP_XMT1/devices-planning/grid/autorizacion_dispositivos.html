@@ -2899,14 +2899,20 @@ var QRCode;
         document.getElementById("otro-scan-result").style.display = "none";
 
         const ownerKey = found.owner_key || `user:${(found.correo || "").toLowerCase()}`;
-        const existing = (bucket.records || []).filter((d) => d.owner_key === ownerKey);
+        const allExisting = (bucket.records || []).filter((d) => d.owner_key === ownerKey);
+        const inactivos = allExisting.filter(d => d.status === "inactivo");
+        const activos = allExisting.filter(d => d.status !== "inactivo");
         this.existingCorreo = found.correo || "";
 
         document.getElementById("correo").value = this.existingCorreo;
         document.getElementById("correo").setAttribute("readonly", "readonly");
 
         DebugConsole.log(`Dispositivo existente encontrado, correo=${this.existingCorreo}`, "info");
-        this.promptExistingDevices(ownerKey, existing, "otro");
+        if (inactivos.length > 0 && activos.length === 0) {
+          this.mostrarAlertaReactivar(ownerKey, inactivos);
+        } else {
+          this.promptExistingDevices(ownerKey, activos.length > 0 ? activos : allExisting, "otro");
+        }
         this.updateFormSteps();
       }
 
@@ -3370,14 +3376,19 @@ var QRCode;
         document.getElementById("driver-scan-confirm").style.display = "block";
 
         const ownerKey = `driver:${driverId}`;
-        const existing = await this.findDevicesByOwner(ownerKey);
+        const bucket = (await this.gridClient.getStateBucket("devices_master")) || {};
+        const allOwner = (bucket.records || []).filter(d => d.owner_key === ownerKey);
+        const inactivos = allOwner.filter(d => d.status === "inactivo");
+        const activos = allOwner.filter(d => d.status !== "inactivo");
         DebugConsole.log(
-          `Driver ${driverId}: ${existing.length} dispositivo(s) existente(s)`,
+          `Driver ${driverId}: ${allOwner.length} dispositivo(s) existente(s)`,
           "info"
         );
 
-        if (existing.length > 0) {
-          this.promptExistingDevices(ownerKey, existing, "driver");
+        if (inactivos.length > 0 && activos.length === 0) {
+          this.mostrarAlertaReactivar(ownerKey, inactivos);
+        } else if (activos.length > 0) {
+          this.promptExistingDevices(ownerKey, activos, "driver");
         } else {
           this.readyForDevice = true;
         }
@@ -3834,6 +3845,7 @@ var QRCode;
 
         document.getElementById("btn-modal-record-photo").style.display = "none";
         document.getElementById("btn-modal-record-qr").style.display = "none";
+        document.getElementById("btn-modal-record-share").style.display = "none";
         document.getElementById("btn-modal-record-toggle").style.display = "none";
         document.getElementById("btn-modal-record-delete").style.display = "none";
         document.getElementById("modal-record-detail").classList.add("active");
@@ -3918,6 +3930,21 @@ var QRCode;
             blob,
             `dispositivo_${deviceId}.jpg`
           );
+
+          // Asociar foto a la carpeta compartida
+          const folderId = await this.getOrCreatePhotoFolder();
+          if (folderId && fotoDocId) {
+            await this.gridClient._fetchWithTimeout(
+              `${location.origin}/api/v1/folders/${folderId}/documents`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({ doc_id: fotoDocId }),
+              },
+              10000
+            ).catch(e => DebugConsole.log(`Asociar foto a carpeta: ${e.message}`, "warn"));
+          }
 
           // 3. Construir registro
           const now = new Date().toISOString();
@@ -4135,6 +4162,132 @@ var QRCode;
         alertEl.style.display = "flex";
       }
 
+      renderSkeletonRows(containerId, count = 5) {
+        const el = document.getElementById(containerId);
+        if (!el) return;
+        el.innerHTML = Array.from({ length: count }, () => `
+          <div class="skeleton-row">
+            <div class="skeleton skeleton-badge"></div>
+            <div class="skeleton skeleton-text" style="width:${50 + Math.random() * 120 | 0}px;flex:1;"></div>
+            <div class="skeleton skeleton-date"></div>
+          </div>`).join("");
+      }
+
+      mostrarAlertaReactivar(ownerKey, inactivos) {
+        const list = inactivos.map(d => `• ${d.descripcion || d.id}`).join("<br/>");
+        document.getElementById("existing-devices-info").innerHTML = `
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:6px;color:var(--accent);"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          Esta persona tiene ${inactivos.length} dispositivo(s) <strong>inactivo(s)</strong>:<br/>${list}
+          <br/><br/>¿Desea reactivarlos en lugar de registrar uno nuevo?
+        `;
+
+        document.getElementById("btn-add-another-device").style.display = "none";
+        document.getElementById("btn-cancel-existing").style.display = "inline-flex";
+
+        const reactivateBtn = document.getElementById("btn-reactivate-all") ||
+          (() => {
+            const b = document.createElement("button");
+            b.id = "btn-reactivate-all";
+            b.type = "button";
+            b.className = "btn btn-primary";
+            b.textContent = "Reactivar dispositivos";
+            document.getElementById("existing-devices-card")
+              .querySelector("div[style*='flex']").prepend(b);
+            return b;
+          })();
+
+        reactivateBtn.style.display = "inline-flex";
+        reactivateBtn.onclick = () => this.reactivarDispositivos(ownerKey, inactivos);
+
+        document.getElementById("existing-devices-card").style.display = "block";
+        this._existingOwnerKey = ownerKey;
+      }
+
+      async reactivarDispositivos(ownerKey, inactivos) {
+        const btn = document.getElementById("btn-reactivate-all");
+        btn.disabled = true;
+        btn.textContent = "Reactivando...";
+        try {
+          const updatedBucket = await this.gridClient.mutateBucket("devices_master", async (bucket) => {
+            for (const rec of bucket.records) {
+              if (inactivos.some(d => d.id === rec.id)) rec.status = "activo";
+            }
+            return bucket;
+          });
+          if (updatedBucket?.records) this.devicesRecords = updatedBucket.records;
+          document.getElementById("existing-devices-card").style.display = "none";
+          document.getElementById("btn-add-another-device").style.display = "inline-flex";
+          btn.style.display = "none";
+          this.showAlert("registro", `${inactivos.length} dispositivo(s) reactivados correctamente.`, "success");
+          this.applyDevicesFilter();
+          DebugConsole.log(`${inactivos.length} dispositivos reactivados para ${ownerKey}`, "info");
+        } catch(e) {
+          btn.disabled = false;
+          btn.textContent = "Reactivar dispositivos";
+          DebugConsole.log(`Error reactivar: ${e.message}`, "error");
+        }
+      }
+
+      async getOrCreatePhotoFolder() {
+        if (this.photoFolderId) return this.photoFolderId;
+
+        const foldersBucket = await this.gridClient.getStateBucket("photo_folders").catch(() => null);
+        if (foldersBucket?.devices_folder_id) {
+          this.photoFolderId = foldersBucket.devices_folder_id;
+          return this.photoFolderId;
+        }
+
+        try {
+          const res = await this.gridClient._fetchWithTimeout(
+            `${location.origin}/api/v1/folders`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              credentials: "include",
+              body: JSON.stringify({ name: "Dispositivos - Fotos", visibility: "private" }),
+            },
+            15000
+          );
+          if (res.ok) {
+            const data = await res.json();
+            this.photoFolderId = data.folder_id || data.id;
+            await this.gridClient.mutateBucket("photo_folders", async (bucket) => {
+              bucket.devices_folder_id = this.photoFolderId;
+              return bucket;
+            }).catch(() => {});
+          }
+        } catch(e) {
+          DebugConsole.log(`getOrCreatePhotoFolder error: ${e.message}`, "warn");
+        }
+
+        return this.photoFolderId;
+      }
+
+      compartirDispositivo(rec) {
+        const qrUrl = rec.qr_doc_id
+          ? `https://grid.adminml.com/d/${rec.qr_doc_id}?dl=1`
+          : null;
+
+        const lineas = [
+          `Tu dispositivo ha sido autorizado.`,
+          ``,
+          `Descripción: ${rec.descripcion || "-"}`,
+          rec.empresa ? `Empresa: ${rec.empresa}` : null,
+          rec.imei ? `IMEI: ${rec.imei}` : null,
+          `Tipo: ${rec.tipo_dispositivo || "-"}`,
+          `Puesto: ${rec.puesto || "-"}`,
+          `ID de autorización: ${rec.id}`,
+          ``,
+          qrUrl ? `QR de acceso: ${qrUrl}` : null,
+          ``,
+          `Para ingresar/salir, presenta este QR al guardia.`,
+        ].filter(l => l !== null);
+
+        const body = encodeURIComponent(lineas.join("\n"));
+        const subject = encodeURIComponent("Autorización de dispositivo");
+        window.location.href = `mailto:${rec.correo}?subject=${subject}&body=${body}`;
+      }
+
       // Alerta destacada de bloqueo BPP (más prominente que showAlert).
       showBppBlockAlert(shipmentId) {
         const alertEl = document.getElementById("alert-registro");
@@ -4166,6 +4319,9 @@ var QRCode;
         document.getElementById("driver-scan-confirm").style.display = "none";
         document.getElementById("otro-scan-result").style.display = "none";
         document.getElementById("existing-devices-card").style.display = "none";
+        document.getElementById("btn-add-another-device").style.display = "inline-flex";
+        const reactivateBtn = document.getElementById("btn-reactivate-all");
+        if (reactivateBtn) reactivateBtn.style.display = "none";
         this.resetFlowState();
         this.updateFormSteps();
       }
