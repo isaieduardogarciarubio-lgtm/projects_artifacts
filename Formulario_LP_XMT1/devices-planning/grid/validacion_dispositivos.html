@@ -847,12 +847,20 @@
 
       _fetchWithTimeout(url, options = {}, timeout = 10000) {
         const controller = new AbortController();
-        const id = setTimeout(() => controller.abort(), timeout);
-        try {
-          return fetch(url, { ...options, signal: controller.signal });
-        } finally {
-          clearTimeout(id);
-        }
+        const timeoutId = setTimeout(() => controller.abort(), timeout);
+        return fetch(url, { ...options, signal: controller.signal })
+          .catch((e) => {
+            if (e.name === "AbortError") {
+              const err = new Error(`Tiempo de espera agotado (${timeout / 1000}s)`);
+              err.isTimeout = true;
+              throw err;
+            }
+            const err = new Error("Sin conexión con el servidor");
+            err.isNetworkError = true;
+            err.cause = e;
+            throw err;
+          })
+          .finally(() => clearTimeout(timeoutId));
       }
 
       async getStateBucket(name) {
@@ -1550,8 +1558,13 @@
           this.showDenied("No registrado", "No existe un dispositivo registrado con este código.");
         }
         } catch (e) {
+          const msg = e.isTimeout
+            ? "Tiempo de espera agotado. Verifica la conexión."
+            : e.isNetworkError
+            ? "Sin conexión. Verifica la red."
+            : "Ocurrió un error al procesar el código.";
           DebugConsole.log(`onDetect error: ${e.message}`, "error");
-          this.showDenied("Error", "Ocurrió un error al procesar el código.");
+          this.showDenied("Error", msg);
         } finally {
           if (processingOverlay) { processingOverlay.style.display = "none"; }
         }
