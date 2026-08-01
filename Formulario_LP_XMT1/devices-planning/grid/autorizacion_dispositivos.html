@@ -1344,6 +1344,7 @@
       <div class="modal-body" id="modal-record-body"></div>
       <div class="modal-footer">
         <button class="btn btn-secondary" id="btn-modal-record-photo" style="display: none;">Ver foto</button>
+        <button class="btn btn-secondary" id="btn-modal-record-qr" style="display: none;">Ver QR</button>
         <button class="btn btn-primary" id="btn-modal-record-close">Cerrar</button>
       </div>
     </div>
@@ -1370,6 +1371,24 @@
 
       <div class="modal-footer">
         <button class="btn btn-primary" id="btn-modal-close">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: VER QR (historial) -->
+  <div class="modal-bg" id="modal-qr">
+    <div class="modal">
+      <div class="modal-title">
+        <span>Código QR del dispositivo</span>
+      </div>
+      <div class="modal-body" style="display: flex; flex-direction: column; align-items: center; gap: 16px;">
+        <div style="background: white; padding: 16px; border-radius: 8px;">
+          <img id="modal-qr-img" src="" alt="QR del dispositivo" style="display: block; width: 220px; height: 220px;" />
+        </div>
+        <button class="btn btn-secondary" id="btn-modal-qr-download">Descargar QR</button>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="btn-modal-qr-close">Cerrar</button>
       </div>
     </div>
   </div>
@@ -2193,6 +2212,19 @@
         document.getElementById("btn-modal-photo-close").addEventListener("click", () => {
           document.getElementById("modal-photo").classList.remove("active");
         });
+
+        document.getElementById("btn-modal-qr-close").addEventListener("click", () => {
+          document.getElementById("modal-qr").classList.remove("active");
+        });
+
+        document.getElementById("btn-modal-qr-download").addEventListener("click", () => {
+          const img = document.getElementById("modal-qr-img");
+          if (!img.src) return;
+          const link = document.createElement("a");
+          link.href = img.src;
+          link.download = "device-authorization-qr.png";
+          link.click();
+        });
       }
 
       viewPhoto(docId, deviceId) {
@@ -2200,6 +2232,13 @@
         document.getElementById("modal-photo-img").src = url;
         document.getElementById("modal-photo").classList.add("active");
         DebugConsole.log(`Abriendo foto: ${deviceId}`, "info");
+      }
+
+      viewQR(docId, deviceId) {
+        const url = "https://grid.adminml.com/d/" + docId + "?dl=1";
+        document.getElementById("modal-qr-img").src = url;
+        document.getElementById("modal-qr").classList.add("active");
+        DebugConsole.log(`Abriendo QR: ${deviceId}`, "info");
       }
 
       /* ─── CATÁLOGO BPP ─────────────────────────────────────────────── */
@@ -2807,6 +2846,18 @@
         } else {
           photoBtn.style.display = "none";
           photoBtn.onclick = null;
+        }
+
+        const qrBtn = document.getElementById("btn-modal-record-qr");
+        if (rec.qr_doc_id) {
+          qrBtn.style.display = "inline-flex";
+          qrBtn.onclick = () => {
+            document.getElementById("modal-record-detail").classList.remove("active");
+            this.viewQR(rec.qr_doc_id, rec.id);
+          };
+        } else {
+          qrBtn.style.display = "none";
+          qrBtn.onclick = null;
         }
 
         document.getElementById("modal-record-detail").classList.add("active");
