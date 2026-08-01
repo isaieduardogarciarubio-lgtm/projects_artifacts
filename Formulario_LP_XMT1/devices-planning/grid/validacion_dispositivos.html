@@ -727,42 +727,102 @@
     </div>
   </div>
 
-  <!-- DEBUG CONSOLE (reutilizado) -->
-  <div id="debug-console" style="position: fixed; bottom: 0; left: 0; right: 0; max-height: 40vh; overflow-y: auto; background: var(--surface-2); border-top: 1px solid var(--border); padding: 12px; font-family: monospace; font-size: 11px; color: var(--text-sub); z-index: 90; display: none;"></div>
+  <!-- DEBUG CONSOLE (panel deslizable) -->
+  <div id="debug-console-panel" style="position: fixed; bottom: 20px; right: 20px; width: 320px; max-width: calc(100vw - 40px); max-height: 420px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); display: flex; flex-direction: column; z-index: 1000; transform: translateY(470px); transition: transform 0.3s ease; box-shadow: var(--shadow);">
+    <div style="padding: 12px 14px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+      <span style="font-weight: 600; font-size: 13px; color: var(--text-sub);">Debug</span>
+      <button onclick="DebugConsole.toggle()" style="background: none; border: none; color: var(--text-sub); cursor: pointer; padding: 4px;">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div id="debug-console-body" style="flex: 1; overflow-y: auto; font-size: 11px; font-family: monospace; padding: 10px; line-height: 1.4; color: var(--text-sub);"></div>
+    <div style="padding: 8px; border-top: 1px solid var(--border); display: flex; gap: 6px;">
+      <button onclick="DebugConsole.copyToClipboard()" style="flex: 1; padding: 7px; background: var(--surface-2); border: 1px solid var(--border); color: var(--text-sub); border-radius: var(--r-sm); cursor: pointer; font-size: 12px;">Copiar</button>
+      <button onclick="DebugConsole.toggle()" style="flex: 1; padding: 7px; background: var(--surface-2); border: 1px solid var(--border); color: var(--text-sub); border-radius: var(--r-sm); cursor: pointer; font-size: 12px;">Cerrar</button>
+    </div>
+  </div>
+
+  <div id="debug-console-badge" style="position: fixed; bottom: 20px; right: 20px; width: 34px; height: 34px; background: var(--c-red); border-radius: 50%; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 12px; cursor: pointer; z-index: 999; display: none;" onclick="DebugConsole.toggle()"></div>
 
   <script>
     /* ─────────────────────────────────────────────────────────────────────── */
     /* DEBUG CONSOLE */
     /* ─────────────────────────────────────────────────────────────────────── */
 
-    const DebugConsole = {
-      logs: [],
-      setup() {
+    class DebugConsole {
+      static entries = [];
+      static maxEntries = 300;
+
+      static log(message, level = "info") {
+        const ts = new Date().toISOString().split("T")[1].slice(0, 8);
+        this.entries.push({ ts, level, message: String(message) });
+        if (this.entries.length > this.maxEntries) this.entries.shift();
         this.render();
-      },
-      log(msg, type = "info") {
-        const timestamp = new Date().toLocaleTimeString("es-MX", {
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-        });
-        this.logs.push({ timestamp, msg, type });
-        if (this.logs.length > 100) this.logs.shift();
-        this.render();
-      },
-      render() {
-        const el = document.getElementById("debug-console");
+        if (level === "error") console.error(message);
+        else if (level === "warn") console.warn(message);
+        else console.log(message);
+      }
+
+      static escapeHtml(s) {
+        const div = document.createElement("div");
+        div.textContent = s;
+        return div.innerHTML;
+      }
+
+      static render() {
+        const el = document.getElementById("debug-console-body");
         if (!el) return;
-        el.innerHTML = this.logs
-          .map((l) => `<div>[${l.timestamp}] [${l.type}] ${l.msg}</div>`)
+        const colors = { error: "#FF5C6C", warn: "#FFD100", info: "#6B757D" };
+        el.innerHTML = this.entries
+          .map(
+            (e) =>
+              `<div style="color:${colors[e.level] || colors.info};">[${e.ts}] ${this.escapeHtml(e.message)}</div>`
+          )
           .join("");
         el.scrollTop = el.scrollHeight;
-      },
-      toggle() {
-        const el = document.getElementById("debug-console");
-        if (el) el.style.display = el.style.display === "none" ? "block" : "none";
-      },
-    };
+        const errorCount = this.entries.filter((e) => e.level === "error").length;
+        const badge = document.getElementById("debug-console-badge");
+        if (badge) {
+          badge.style.display = errorCount > 0 ? "flex" : "none";
+          badge.textContent = errorCount > 9 ? "9+" : String(errorCount);
+        }
+        const inlineBadge = document.getElementById("debug-console-inline-badge");
+        if (inlineBadge) {
+          inlineBadge.style.display = errorCount > 0 ? "flex" : "none";
+          inlineBadge.textContent = errorCount > 9 ? "9+" : String(errorCount);
+        }
+      }
+
+      static toggle() {
+        const panel = document.getElementById("debug-console-panel");
+        panel.classList.toggle("open");
+        const isOpen = panel.classList.contains("open");
+        panel.style.transform = isOpen ? "translateY(0)" : "translateY(470px)";
+      }
+
+      static copyToClipboard() {
+        const text = this.entries
+          .map((e) => `[${e.ts}] [${e.level}] ${e.message}`)
+          .join("\n");
+        navigator.clipboard
+          .writeText(text)
+          .then(() => this.log("Log copiado al portapapeles", "info"))
+          .catch(() =>
+            this.log("No se pudo copiar — selecciona el texto manualmente", "warn")
+          );
+      }
+
+      static setup() {
+        window.addEventListener("error", (e) => {
+          this.log(`Error no capturado: ${e.message} (${e.filename}:${e.lineno})`, "error");
+        });
+        window.addEventListener("unhandledrejection", (e) => {
+          const reason = e.reason && e.reason.message ? e.reason.message : String(e.reason);
+          this.log(`Promesa rechazada sin capturar: ${reason}`, "error");
+        });
+        this.log("Consola de depuración iniciada", "info");
+      }
+    }
 
     /* ─────────────────────────────────────────────────────────────────────── */
     /* GRID CLIENT (reutilizado) */
@@ -884,10 +944,15 @@
       }
 
       async getDownloadUrl(docId) {
-        return (
-          `${this.baseUrl}/api/v1/documents/${docId}/download` ||
-          null
+        const res = await this._fetchWithTimeout(
+          `${this.baseUrl}/api/v1/documents/${docId}/download`,
+          { credentials: "include" }
         );
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+        const meta = await res.json();
+        return meta.download_url || meta.agent_download_url;
       }
     }
 
@@ -1051,7 +1116,7 @@
       enterHandheldState() {
         this.scanner.stop();
         const body = document.getElementById("scanner-body");
-        body.innerHTML = `<input type="text" class="search-input" id="handheld-input" placeholder="Escanea con el lector..." style="width: 100%;" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />`;
+        body.innerHTML = `<input type="text" class="search-input" id="handheld-input" placeholder="Escanea con el lector..." style="width: 100%;" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="none" />`;
 
         const hint = document.getElementById("scan-hint");
         hint.textContent = "Modo handheld — escanea con el lector (o escribe y Enter).";
