@@ -2623,6 +2623,9 @@ var QRCode;
         this.loadHistorial();
         this.loadBppCatalog();
         this.loadLogo();
+        // Ocultar loader inicial una vez que la app ha iniciado
+        const initOverlay = document.getElementById("init-overlay");
+        if (initOverlay) { initOverlay.style.opacity = "0"; setTimeout(() => initOverlay.remove(), 400); }
       }
 
       loadLogo() {
