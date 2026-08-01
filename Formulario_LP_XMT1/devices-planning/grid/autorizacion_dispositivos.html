@@ -583,7 +583,8 @@
 
     .modal-footer {
       display: flex;
-      gap: 12px;
+      flex-wrap: wrap;
+      gap: 8px;
       justify-content: flex-end;
     }
 
@@ -4267,7 +4268,8 @@ var QRCode;
         const qrUrl = `https://grid.adminml.com/d/${rec.qr_doc_id}?dl=1`;
         const body = encodeURIComponent(`Tu QR de acceso:\n\n${qrUrl}\n\nPreséntalo al guardia para ingresar o salir.`);
         const subject = encodeURIComponent("QR de acceso");
-        window.location.href = `mailto:${rec.correo}?subject=${subject}&body=${body}`;
+        const to = encodeURIComponent(rec.correo);
+        window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${to}&su=${subject}&body=${body}`, "_blank");
       }
 
       // Alerta destacada de bloqueo BPP (más prominente que showAlert).
