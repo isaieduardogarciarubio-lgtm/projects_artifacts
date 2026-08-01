@@ -3693,7 +3693,7 @@ var QRCode;
         }
 
         const shareBtn = document.getElementById("btn-modal-record-share");
-        if (rec.correo) {
+        if (rec.correo && rec.qr_doc_id) {
           shareBtn.style.display = "inline-flex";
           shareBtn.disabled = false;
           shareBtn.onclick = () => this.compartirDispositivo(rec);
@@ -4264,27 +4264,9 @@ var QRCode;
       }
 
       compartirDispositivo(rec) {
-        const qrUrl = rec.qr_doc_id
-          ? `https://grid.adminml.com/d/${rec.qr_doc_id}?dl=1`
-          : null;
-
-        const lineas = [
-          `Tu dispositivo ha sido autorizado.`,
-          ``,
-          `Descripción: ${rec.descripcion || "-"}`,
-          rec.empresa ? `Empresa: ${rec.empresa}` : null,
-          rec.imei ? `IMEI: ${rec.imei}` : null,
-          `Tipo: ${rec.tipo_dispositivo || "-"}`,
-          `Puesto: ${rec.puesto || "-"}`,
-          `ID de autorización: ${rec.id}`,
-          ``,
-          qrUrl ? `QR de acceso: ${qrUrl}` : null,
-          ``,
-          `Para ingresar/salir, presenta este QR al guardia.`,
-        ].filter(l => l !== null);
-
-        const body = encodeURIComponent(lineas.join("\n"));
-        const subject = encodeURIComponent("Autorización de dispositivo");
+        const qrUrl = `https://grid.adminml.com/d/${rec.qr_doc_id}?dl=1`;
+        const body = encodeURIComponent(`Tu QR de acceso:\n\n${qrUrl}\n\nPreséntalo al guardia para ingresar o salir.`);
+        const subject = encodeURIComponent("QR de acceso");
         window.location.href = `mailto:${rec.correo}?subject=${subject}&body=${body}`;
       }
 
