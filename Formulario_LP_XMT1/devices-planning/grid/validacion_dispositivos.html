@@ -1015,6 +1015,53 @@
     }
 
     /* ─────────────────────────────────────────────────────────────────────── */
+    /* SCAN MODE STORE (IndexedDB) */
+    /* ─────────────────────────────────────────────────────────────────────── */
+
+    const ScanModeStore = (() => {
+      const DB_NAME = "validacion-prefs";
+      const STORE   = "prefs";
+      const KEY     = "scanMode";
+
+      function openDb() {
+        return new Promise((resolve, reject) => {
+          const req = indexedDB.open(DB_NAME, 1);
+          req.onupgradeneeded = (e) => {
+            e.target.result.createObjectStore(STORE);
+          };
+          req.onsuccess = (e) => resolve(e.target.result);
+          req.onerror   = (e) => reject(e.target.error);
+        });
+      }
+
+      async function get() {
+        try {
+          const db = await openDb();
+          return new Promise((resolve) => {
+            const tx  = db.transaction(STORE, "readonly");
+            const req = tx.objectStore(STORE).get(KEY);
+            req.onsuccess = () => resolve(req.result ?? "handheld");
+            req.onerror   = () => resolve("handheld");
+          });
+        } catch { return "handheld"; }
+      }
+
+      async function set(value) {
+        try {
+          const db = await openDb();
+          return new Promise((resolve, reject) => {
+            const tx  = db.transaction(STORE, "readwrite");
+            const req = tx.objectStore(STORE).put(value, KEY);
+            req.onsuccess = () => resolve();
+            req.onerror   = () => reject(req.error);
+          });
+        } catch { /* silencioso */ }
+      }
+
+      return { get, set };
+    })();
+
+    /* ─────────────────────────────────────────────────────────────────────── */
     /* MAIN APP */
     /* ─────────────────────────────────────────────────────────────────────── */
 
@@ -1029,7 +1076,7 @@
         this.devicesBucket = null;
         this.scansBucket = null;
         this.mode = localStorage.getItem("validacion-mode") || "entrada";
-        this.scanMode = localStorage.getItem("validacion-scanmode") || "handheld";
+        this.scanMode = "handheld"; // se sobreescribe en init() con el valor de IndexedDB
 
         DebugConsole.setup();
         DebugConsole.log(`Documento: ${this.docId}`, "info");
@@ -1052,6 +1099,8 @@
           this.loadLogo();
           await this.loadUser();
           await this.loadDevices();
+          const savedMode = await ScanModeStore.get();
+          this.scanMode = savedMode;
           this.bindEvents();
           this.applyScanMode();
         } catch(e) {
@@ -1115,7 +1164,7 @@
       setScanMode(mode) {
         if (mode !== "handheld" && mode !== "camera") return;
         this.scanMode = mode;
-        localStorage.setItem("validacion-scanmode", mode);
+        ScanModeStore.set(mode).catch(() => {});
         document.getElementById("btn-scanmode-handheld").classList.toggle("active", mode === "handheld");
         document.getElementById("btn-scanmode-camera").classList.toggle("active", mode === "camera");
         DebugConsole.log(`Modo de escaneo: ${mode}`, "info");
