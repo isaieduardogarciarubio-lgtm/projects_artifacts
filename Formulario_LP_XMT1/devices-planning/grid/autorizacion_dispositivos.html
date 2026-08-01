@@ -1054,6 +1054,25 @@
         animation: none !important;
       }
     }
+
+    /* Skeleton */
+    @keyframes skeleton-shine {
+      0%   { background-position: -400px 0; }
+      100% { background-position: 400px 0; }
+    }
+    .skeleton {
+      background: linear-gradient(90deg, var(--surface) 25%, var(--surface-2) 50%, var(--surface) 75%);
+      background-size: 800px 100%;
+      animation: skeleton-shine 1.4s infinite;
+      border-radius: var(--r-sm);
+    }
+    .skeleton-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 0; border-bottom: 1px solid var(--border);
+    }
+    .skeleton-badge  { width: 52px; height: 20px; flex-shrink: 0; border-radius: 99px; }
+    .skeleton-text   { height: 14px; border-radius: 4px; }
+    .skeleton-date   { width: 60px; height: 12px; flex-shrink: 0; border-radius: 4px; margin-left: auto; }
   </style>
 </head>
 <body>
@@ -1363,6 +1382,11 @@
               <option value="driver">Driver</option>
               <option value="otro">Otro</option>
             </select>
+            <input type="date" id="filter-devices-from" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text-main);border-radius:var(--r-sm);padding:6px 10px;font-size:13px;" />
+            <input type="date" id="filter-devices-to" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text-main);border-radius:var(--r-sm);padding:6px 10px;font-size:13px;" />
+            <button type="button" id="btn-show-inactive" class="btn btn-ghost" style="font-size:12px; padding: 6px 12px;">
+              Ver inactivos
+            </button>
           </div>
 
           <div id="list-devices" class="record-list"></div>
@@ -1389,6 +1413,8 @@
               <option value="denegado_compartido">Denegado (Compartido)</option>
               <option value="denegado_sin_ingreso">Denegado (Sin ingreso)</option>
             </select>
+            <input type="date" id="filter-scans-from" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text-main);border-radius:var(--r-sm);padding:6px 10px;font-size:13px;" />
+            <input type="date" id="filter-scans-to" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text-main);border-radius:var(--r-sm);padding:6px 10px;font-size:13px;" />
           </div>
 
           <div id="list-scans" class="record-list"></div>
@@ -1413,6 +1439,7 @@
       <div class="modal-footer">
         <button class="btn btn-secondary" id="btn-modal-record-photo" style="display: none;">Ver foto</button>
         <button class="btn btn-secondary" id="btn-modal-record-qr" style="display: none;">Ver QR</button>
+        <button class="btn btn-secondary" id="btn-modal-record-share" style="display:none;">Compartir</button>
         <button class="btn btn-secondary" id="btn-modal-record-toggle" style="display:none;">Desactivar</button>
         <button class="btn btn-secondary" id="btn-modal-record-delete" style="display:none; color: var(--c-red); border-color: var(--c-red);">Eliminar</button>
         <button class="btn btn-primary" id="btn-modal-record-close">Cerrar</button>
@@ -2600,6 +2627,8 @@ var QRCode;
         this._scansFiltered = [];
         this.devicesVisibleCount = 25;
         this.scansVisibleCount = 25;
+        this.showInactive = false;
+        this.photoFolderId = null;
 
         DebugConsole.setup();
         DebugConsole.log(`Documento de datos: ${this.docId}`, "info");
@@ -3387,6 +3416,9 @@ var QRCode;
         // sigue funcionando en vez de dejar todo el historial inerte.
         this.bindHistorialUI();
 
+        this.renderSkeletonRows("list-devices", 5);
+        this.renderSkeletonRows("list-scans", 3);
+
         try {
           const devicesState = await this.gridClient.getStateBucket("devices_master");
           if (devicesState?.records) {
@@ -3476,6 +3508,22 @@ var QRCode;
 
         searchInput.addEventListener("input", handleChange);
         filterSelect.addEventListener("change", handleChange);
+
+        const fromDate = document.getElementById("filter-devices-from");
+        const toDate = document.getElementById("filter-devices-to");
+        if (fromDate) fromDate.addEventListener("change", handleChange);
+        if (toDate) toDate.addEventListener("change", handleChange);
+
+        const inactiveBtn = document.getElementById("btn-show-inactive");
+        if (inactiveBtn) {
+          inactiveBtn.addEventListener("click", () => {
+            this.showInactive = !this.showInactive;
+            inactiveBtn.textContent = this.showInactive ? "Ocultar inactivos" : "Ver inactivos";
+            inactiveBtn.style.color = this.showInactive ? "var(--accent)" : "";
+            this.devicesVisibleCount = 25;
+            this.applyDevicesFilter();
+          });
+        }
       }
 
       bindScansFilter() {
@@ -3489,6 +3537,11 @@ var QRCode;
         };
 
         filterSelect.addEventListener("change", handleChange);
+
+        const fromDate = document.getElementById("filter-scans-from");
+        const toDate = document.getElementById("filter-scans-to");
+        if (fromDate) fromDate.addEventListener("change", handleChange);
+        if (toDate) toDate.addEventListener("change", handleChange);
       }
 
       applyDevicesFilter() {
@@ -3496,10 +3549,12 @@ var QRCode;
         const filterSelect = document.getElementById("filter-devices-puesto");
         const searchTerm = this.constructor.normalizeForSearch(searchInput?.value);
         const filterPuesto = filterSelect?.value || "";
+        const fromDate = document.getElementById("filter-devices-from")?.value;
+        const toDate = document.getElementById("filter-devices-to")?.value;
 
         const filtered = this.devicesRecords
           .filter((rec) => {
-            if (rec.status === "inactivo") return false;
+            if (rec.status === "inactivo" && !this.showInactive) return false;
 
             const matchesSearch = !searchTerm ||
               this.constructor.normalizeForSearch(rec.imei || "").includes(searchTerm) ||
@@ -3509,6 +3564,9 @@ var QRCode;
               this.constructor.normalizeForSearch(rec.empresa || "").includes(searchTerm);
 
             const matchesFilter = !filterPuesto || rec.puesto === filterPuesto;
+
+            if (fromDate && rec.timestamp && rec.timestamp < fromDate) return false;
+            if (toDate && rec.timestamp && rec.timestamp > toDate + "T23:59:59") return false;
 
             return matchesSearch && matchesFilter;
           })
@@ -3522,9 +3580,16 @@ var QRCode;
       applyScansFilter() {
         const filterSelect = document.getElementById("filter-scans-resultado");
         const filterResultado = filterSelect?.value || "";
+        const fromDate = document.getElementById("filter-scans-from")?.value;
+        const toDate = document.getElementById("filter-scans-to")?.value;
 
         const filtered = this.scansRecords
-          .filter((rec) => !filterResultado || rec.resultado === filterResultado)
+          .filter((rec) => {
+            if (filterResultado && rec.resultado !== filterResultado) return false;
+            if (fromDate && rec.timestamp && rec.timestamp < fromDate) return false;
+            if (toDate && rec.timestamp && rec.timestamp > toDate + "T23:59:59") return false;
+            return true;
+          })
           .slice()
           .sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
 
@@ -3551,11 +3616,14 @@ var QRCode;
           .map((rec, idx) => {
             const title = rec.descripcion || rec.driver_id || rec.imei || "Sin descripción";
             const badgeClass = rec.puesto === "driver" ? "green" : "blue";
+            const statusBadge = rec.status === "inactivo"
+              ? `<span class="badge" style="background:rgba(255,92,108,0.12);color:var(--c-red);font-size:10px;margin-left:4px;">inactivo</span>`
+              : "";
             return `
               <div class="record-row" data-idx="${idx}">
                 <div class="record-row-main">
                   <span class="badge ${badgeClass}">${rec.puesto || "-"}</span>
-                  <span class="record-row-title">${title}</span>
+                  <span class="record-row-title">${title}</span>${statusBadge}
                 </div>
                 <div class="record-row-meta">
                   <span class="record-row-date">${this.constructor.formatShortDate(rec.timestamp)}</span>
@@ -3574,6 +3642,7 @@ var QRCode;
         const rows = [
           ["Timestamp", rec.timestamp ? new Date(rec.timestamp).toLocaleString() : "-"],
           ["Puesto", rec.puesto || "-"],
+          ["Estado", rec.status || "activo"],
           ["Driver ID", rec.driver_id || "-"],
           ["IMEI", esSmartphone ? (rec.imei || "-") : "-"],
           ["Descripción", rec.descripcion || "-"],
@@ -3610,6 +3679,16 @@ var QRCode;
         } else {
           qrBtn.style.display = "none";
           qrBtn.onclick = null;
+        }
+
+        const shareBtn = document.getElementById("btn-modal-record-share");
+        if (rec.correo) {
+          shareBtn.style.display = "inline-flex";
+          shareBtn.disabled = false;
+          shareBtn.onclick = () => this.compartirDispositivo(rec);
+        } else {
+          shareBtn.style.display = "none";
+          shareBtn.onclick = null;
         }
 
         // Botón desactivar/activar
