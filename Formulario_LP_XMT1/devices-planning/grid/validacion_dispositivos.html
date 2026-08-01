@@ -623,7 +623,7 @@
     <div style="width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin-loader 0.9s linear infinite;"></div>
   </div>
   <!-- STAGE: ESCÁNER -->
-  <section class="stage active" id="stage-scanner" data-state="valid">
+  <section class="stage active" id="stage-scanner" data-state="valid" style="position:relative;">
     <nav class="nav">
       <div class="brand">
         <img id="navbar-logo-img" class="navbar-logo" alt="Validate" />
@@ -654,6 +654,10 @@
       <div id="scanner-body"></div>
 
       <div class="scan-hint" id="scan-hint"></div>
+    </div>
+    <div id="processing-overlay" style="display:none; position:absolute; inset:0; background:rgba(9,12,14,0.7); backdrop-filter:blur(3px); align-items:center; justify-content:center; flex-direction:column; gap:16px; z-index:50; border-radius: inherit;">
+      <div style="width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin-loader 0.9s linear infinite;"></div>
+      <span style="color:var(--text-sub);font-size:13px;">Verificando...</span>
     </div>
   </section>
 
@@ -1232,6 +1236,11 @@
         DebugConsole.log(`Detectado: ${value}`, "info");
         this.scanner.stop();
 
+        const processingOverlay = document.getElementById("processing-overlay");
+        if (processingOverlay) { processingOverlay.style.display = "flex"; }
+
+        try {
+
         const trimmed = String(value).trim();
 
         // Parsear: ¿driver JSON o device id?
@@ -1481,6 +1490,12 @@
           }
         } else {
           this.showDenied("No registrado", "No existe un dispositivo registrado con este código.");
+        }
+        } catch (e) {
+          DebugConsole.log(`onDetect error: ${e.message}`, "error");
+          this.showDenied("Error", "Ocurrió un error al procesar el código.");
+        } finally {
+          if (processingOverlay) { processingOverlay.style.display = "none"; }
         }
       }
 

@@ -1413,6 +1413,7 @@
       <div class="modal-footer">
         <button class="btn btn-secondary" id="btn-modal-record-photo" style="display: none;">Ver foto</button>
         <button class="btn btn-secondary" id="btn-modal-record-qr" style="display: none;">Ver QR</button>
+        <button class="btn btn-secondary" id="btn-modal-record-delete" style="display:none; color: var(--c-red); border-color: var(--c-red);">Desactivar</button>
         <button class="btn btn-primary" id="btn-modal-record-close">Cerrar</button>
       </div>
     </div>
@@ -2584,6 +2585,7 @@ var QRCode;
         this.existingCorreo = null;
         this._existingContext = null;
         this._existingOwnerKey = null;
+        this._existingQrDocId = null;
 
         // Catálogo BPP: IMEIs implicados en casos de generación BPP.
         // Índice en memoria para lookup instantáneo al guardar.
@@ -2762,6 +2764,7 @@ var QRCode;
         this.existingCorreo = null;
         this._existingContext = null;
         this._existingOwnerKey = null;
+        this._existingQrDocId = null;
 
         this.stopScanner();
         this.stopOtroScanner();
@@ -2785,6 +2788,7 @@ var QRCode;
         document.getElementById("existing-devices-card").style.display = "block";
         this._existingContext = context;
         this._existingOwnerKey = ownerKey;
+        this._existingQrDocId = existing.find(d => d.qr_doc_id)?.qr_doc_id || null;
       }
 
       setupOtroScanner() {
@@ -3589,7 +3593,35 @@ var QRCode;
           qrBtn.onclick = null;
         }
 
+        const deleteBtn = document.getElementById("btn-modal-record-delete");
+        deleteBtn.style.display = "inline-flex";
+        deleteBtn.onclick = () => this.desactivarDispositivo(rec.id);
+
         document.getElementById("modal-record-detail").classList.add("active");
+      }
+
+      async desactivarDispositivo(deviceId) {
+        if (!confirm(`¿Desactivar el dispositivo ${deviceId}? Esta acción lo marcará como inactivo.`)) return;
+        const btn = document.getElementById("btn-modal-record-delete");
+        btn.disabled = true;
+        btn.textContent = "Desactivando...";
+        try {
+          const updatedBucket = await this.gridClient.mutateBucket("devices_master", async (bucket) => {
+            const rec = bucket.records.find(r => r.id === deviceId);
+            if (rec) rec.status = "inactivo";
+            return bucket;
+          });
+          if (updatedBucket?.records) {
+            this.devicesRecords = updatedBucket.records;
+          }
+          document.getElementById("modal-record-detail").classList.remove("active");
+          this.applyDevicesFilter();
+          DebugConsole.log(`Dispositivo ${deviceId} desactivado`, "info");
+        } catch(e) {
+          btn.disabled = false;
+          btn.textContent = "Desactivar";
+          DebugConsole.log(`Error desactivar: ${e.message}`, "error");
+        }
       }
 
       renderScansList(records) {
@@ -3652,6 +3684,8 @@ var QRCode;
           .join("");
 
         document.getElementById("btn-modal-record-photo").style.display = "none";
+        document.getElementById("btn-modal-record-qr").style.display = "none";
+        document.getElementById("btn-modal-record-delete").style.display = "none";
         document.getElementById("modal-record-detail").classList.add("active");
       }
 
@@ -3761,16 +3795,29 @@ var QRCode;
             record.owner_tipo = "driver";
             // SIN QR para Driver
           } else {
-            record.correo = document.getElementById("correo").value;
+            // Si es adición a owner existente, el correo viene del ownerKey almacenado
+            const correoInput = document.getElementById("correo").value;
+            const correoFromOwner = this._existingOwnerKey?.startsWith("user:")
+              ? this._existingOwnerKey.replace("user:", "")
+              : "";
+            record.correo = correoInput || correoFromOwner;
             record.owner_key = `user:${record.correo.toLowerCase()}`;
             record.owner_tipo = "otro";
-            // Generar QR para Otro (con logo central del doc_id configurado)
-            qrDataUrl = await this.generarQR(deviceId);
-            const qrBlob = await this.dataUrlToBlob(qrDataUrl);
-            record.qr_doc_id = await this.gridClient.uploadPublicDocument(
-              qrBlob,
-              `qr_${deviceId}.png`
-            );
+
+            if (this._existingQrDocId) {
+              // Reusar QR existente del owner — mismo QR para todos sus dispositivos
+              record.qr_doc_id = this._existingQrDocId;
+              qrDataUrl = null; // no se abre modal de QR, ya lo tienen
+              DebugConsole.log(`Reutilizando QR existente: ${record.qr_doc_id}`, "info");
+            } else {
+              // Primer dispositivo de este owner — generar QR nuevo
+              qrDataUrl = await this.generarQR(deviceId);
+              const qrBlob = await this.dataUrlToBlob(qrDataUrl);
+              record.qr_doc_id = await this.gridClient.uploadPublicDocument(
+                qrBlob,
+                `qr_${deviceId}.png`
+              );
+            }
           }
 
           // 4. Guardar en bucket
@@ -3804,7 +3851,16 @@ var QRCode;
                 `Driver ID ${record.driver_id} autorizado correctamente.`;
               document.getElementById("qr-preview-modal").style.display = "none";
             } else {
-              this.mostrarQRModal(qrDataUrl, record);
+              if (qrDataUrl) {
+                this.mostrarQRModal(qrDataUrl, record);
+              } else {
+                // Dispositivo adicional — modal simple sin QR nuevo
+                document.getElementById("modal-resultado").classList.add("active");
+                document.getElementById("modal-titulo").textContent = "Dispositivo registrado";
+                document.getElementById("modal-mensaje").textContent =
+                  `Dispositivo autorizado. Usa el QR existente del titular. ID: ${record.id}`;
+                document.getElementById("qr-preview-modal").style.display = "none";
+              }
             }
           }
         }
