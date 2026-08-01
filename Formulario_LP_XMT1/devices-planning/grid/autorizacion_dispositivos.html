@@ -603,6 +603,14 @@
       display: block;
     }
 
+    #camera-video {
+      width: 100%;
+      max-height: 60vh;
+      object-fit: cover;
+      border-radius: var(--r-md);
+      display: block;
+    }
+
     .scanner-controls {
       display: flex;
       gap: 12px;
@@ -1260,10 +1268,24 @@
           </div>
         </div>
 
-        <!-- PASO 6: FOTO -->
-        <div id="foto-section" style="display: none;">
+        <!-- PASO 6: EMPRESA -->
+        <div id="empresa-section" style="display: none;">
           <div class="step-indicator">
             <div class="step-number active">6</div>
+            <span>Empresa</span>
+          </div>
+          <div class="form-group">
+            <label for="empresa">Empresa *</label>
+            <input type="text" id="empresa" placeholder="NOMBRE DE LA EMPRESA" required
+              style="text-transform: uppercase;"
+              oninput="this.value = this.value.toUpperCase()" />
+          </div>
+        </div>
+
+        <!-- PASO 7: FOTO -->
+        <div id="foto-section" style="display: none;">
+          <div class="step-indicator">
+            <div class="step-number active">7</div>
             <span>Fotografía</span>
           </div>
 
@@ -1492,6 +1514,11 @@
         <button class="btn btn-secondary" id="btn-modal-bpp-close">Cerrar</button>
       </div>
     </div>
+  </div>
+
+  <!-- LOADER DE CARGA INICIAL -->
+  <div id="init-overlay" style="position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.4s;">
+    <div style="width:44px;height:44px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:morph-spin 0.9s linear infinite;"></div>
   </div>
 
   <!-- CANVAS TEMPORAL PARA QR -->
@@ -3089,6 +3116,8 @@ var QRCode;
           showDeviceSteps && tipoDisp === "smartphone" ? "block" : "none";
         document.getElementById("descripcion-section").style.display =
           showDeviceSteps && tipoDisp ? "block" : "none";
+        document.getElementById("empresa-section").style.display =
+          showDeviceSteps && tipoDisp ? "block" : "none";
         document.getElementById("foto-section").style.display =
           showDeviceSteps && tipoDisp ? "block" : "none";
 
@@ -3450,7 +3479,8 @@ var QRCode;
               this.constructor.normalizeForSearch(rec.imei || "").includes(searchTerm) ||
               this.constructor.normalizeForSearch(rec.driver_id || "").includes(searchTerm) ||
               this.constructor.normalizeForSearch(rec.correo || "").includes(searchTerm) ||
-              this.constructor.normalizeForSearch(rec.descripcion || "").includes(searchTerm);
+              this.constructor.normalizeForSearch(rec.descripcion || "").includes(searchTerm) ||
+              this.constructor.normalizeForSearch(rec.empresa || "").includes(searchTerm);
 
             const matchesFilter = !filterPuesto || rec.puesto === filterPuesto;
 
@@ -3521,6 +3551,7 @@ var QRCode;
           ["Driver ID", rec.driver_id || "-"],
           ["IMEI", esSmartphone ? (rec.imei || "-") : "-"],
           ["Descripción", rec.descripcion || "-"],
+          ["Empresa", rec.empresa || "-"],
           ["Correo", rec.correo || "-"],
           ["Usuario", rec.usuario || "-"],
           ["QR generado", rec.qr_doc_id ? "Sí" : "-"],
@@ -3650,6 +3681,12 @@ var QRCode;
           return;
         }
 
+        if (!document.getElementById("empresa").value.trim()) {
+          DebugConsole.log("Validación: falta empresa", "warn");
+          this.showAlert("registro", "Ingresa el nombre de la empresa", "error");
+          return;
+        }
+
         if (
           tipoDisp === "smartphone" &&
           (!document.getElementById("imei").value ||
@@ -3703,6 +3740,7 @@ var QRCode;
             puesto,
             tipo_dispositivo: tipoDisp,
             descripcion,
+            empresa: document.getElementById("empresa").value.trim().toUpperCase(),
             foto_doc_id: fotoDocId,
             usuario: this.currentUser?.ldap || "unknown",
             email: this.currentUser?.email || "",
@@ -3911,6 +3949,7 @@ var QRCode;
         document.getElementById("tipo-dispositivo").value = "";
         document.getElementById("imei").value = "";
         document.getElementById("descripcion").value = "";
+        document.getElementById("empresa").value = "";
         document.getElementById("driver-id").value = "";
         this.fotoData = null;
         document.getElementById("photo-preview").innerHTML = "";
