@@ -711,6 +711,7 @@
         <p class="subtitle" id="deny-reason">Motivo desconocido.</p>
         <div class="action-buttons">
           <button class="btn primary" id="btn-scan-again-2">Escanear otro</button>
+          <button class="btn secondary" id="btn-force-exit" style="display:none; background: rgba(255,92,108,0.15); border-color: var(--c-red); color: var(--c-red);">Forzar salida</button>
         </div>
       </div>
     </div>
@@ -1182,6 +1183,8 @@
           this.backToScanner()
         );
 
+        document.getElementById("btn-force-exit").addEventListener("click", () => this.forzarSalida());
+
         document.getElementById("btn-scanmode-handheld").addEventListener("click", () =>
           this.setScanMode("handheld")
         );
@@ -1380,6 +1383,9 @@
                 resultado = "denegado_sin_ingreso";
                 motivo = "Sin ingreso previo";
                 desc = "El dispositivo está afuera";
+                this._lastDeniedDeviceIds = [dev.id];
+                this._lastDeniedDriverId = type === "driver" ? driverId : null;
+                this._lastDeniedOwnerKey = dev.owner_key;
               }
             }
 
@@ -1517,6 +1523,47 @@
         document.getElementById("stage-scanner").classList.remove("active");
         document.getElementById("stage-valid").classList.remove("active");
         document.getElementById("stage-denied").classList.add("active");
+        document.getElementById("btn-force-exit").style.display =
+          (resultado === "denegado_sin_ingreso") ? "inline-flex" : "none";
+      }
+
+      async forzarSalida() {
+        const btn = document.getElementById("btn-force-exit");
+        btn.disabled = true;
+        btn.textContent = "Registrando...";
+        try {
+          const now = new Date();
+          await this.gridClient.mutateBucket("devices_master", async (bucket) => {
+            for (const rec of bucket.records) {
+              if (this._lastDeniedDeviceIds && this._lastDeniedDeviceIds.includes(rec.id)) {
+                rec.ubicacion = "afuera";
+                rec.ultimo_escaneo = now.toISOString();
+              }
+            }
+            return bucket;
+          });
+          await this.gridClient.mutateBucket("scan_master", async (bucket) => {
+            bucket.records.push({
+              scan_id: `scan_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+              timestamp: now.toISOString(),
+              device_ids: this._lastDeniedDeviceIds || [],
+              driver_id: this._lastDeniedDriverId || null,
+              owner_key: this._lastDeniedOwnerKey || null,
+              validado_por: this.currentUser?.name || "Desconocido",
+              email_validador: this.currentUser?.email || "",
+              resultado: "forzado_salida",
+              tipo_movimiento: "SALIDA",
+              modo: "salida",
+            });
+            return bucket;
+          });
+          btn.textContent = "Salida forzada";
+          setTimeout(() => this.backToScanner(), 1200);
+        } catch(e) {
+          btn.disabled = false;
+          btn.textContent = "Forzar salida";
+          DebugConsole.log(`forzarSalida error: ${e.message}`, "error");
+        }
       }
 
       backToScanner() {
