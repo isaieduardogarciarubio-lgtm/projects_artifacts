@@ -536,10 +536,75 @@
 
     #debug-console-panel { max-height: 0; }
     #debug-console-panel.open { max-height: 320px; }
+
+    /* ── LOADING OVERLAY (carga inicial de datos) ── */
+    .c-loading-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(9, 12, 14, 0.75);
+      z-index: 3000;
+      align-items: center;
+      justify-content: center;
+    }
+    .c-loading-overlay.active { display: flex; }
+    .c-loading-overlay-content {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 16px 24px;
+      border-radius: var(--r-md);
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .c-loading-orb {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--surface-2);
+      flex-shrink: 0;
+      transition: all 0.4s ease;
+    }
+    .c-loading-orb.loading {
+      background: radial-gradient(circle at 30% 30%, #a855f7, #3b82f6, #06b6d4);
+      filter: blur(1px);
+      box-shadow: 0 0 12px rgba(168, 85, 247, 0.6);
+      animation: c-orb-morph 2s infinite alternate, c-orb-spin 3s linear infinite;
+    }
+    .c-loading-orb.done {
+      background: var(--c-green);
+      filter: blur(0);
+      box-shadow: 0 0 10px rgba(0, 214, 137, 0.6);
+      transform: scale(1.15);
+      animation: none;
+    }
+    .c-loading-orb.error {
+      background: var(--c-red);
+      filter: blur(0);
+      box-shadow: 0 0 10px rgba(255, 92, 108, 0.6);
+      animation: none;
+    }
+    @keyframes c-orb-morph {
+      0%   { border-radius: 40% 60% 60% 40% / 60% 30% 70% 40%; }
+      100% { border-radius: 60% 40% 30% 70% / 50% 60% 30% 60%; }
+    }
+    @keyframes c-orb-spin { 100% { transform: rotate(360deg); } }
   </style>
 </head>
 
 <body>
+
+<!-- Overlay de carga inicial: se muestra mientras los State Buckets no han
+     respondido. Empieza activo y se oculta desde JS cuando init() termina. -->
+<div id="c-loading-overlay" class="c-loading-overlay active">
+  <div class="c-loading-overlay-content">
+    <div id="c-loading-orb" class="c-loading-orb loading"></div>
+    <span id="c-loading-overlay-text">Cargando datos...</span>
+  </div>
+</div>
 
 <!-- HEADER (barra de título) -->
 <header class="header">
@@ -907,7 +972,20 @@
     async init() {
       this.setupEventListeners();
       this.loadHeaderLogo();
-      await this.loadAllLogs();
+      const cOverlay = document.getElementById('c-loading-overlay');
+      const cOrb     = document.getElementById('c-loading-orb');
+      const cText    = document.getElementById('c-loading-overlay-text');
+      try {
+        await this.loadAllLogs();
+        if (cOrb)  { cOrb.className  = 'c-loading-orb done'; }
+        if (cText) { cText.textContent = 'Cargado'; }
+        setTimeout(() => { if (cOverlay) cOverlay.classList.remove('active'); }, 400);
+      } catch (e) {
+        if (cOrb)  { cOrb.className  = 'c-loading-orb error'; }
+        if (cText) { cText.textContent = 'Error al cargar'; }
+        setTimeout(() => { if (cOverlay) cOverlay.classList.remove('active'); }, 1600);
+        throw e;
+      }
       const firstWithData = Object.entries(this.logs).find(([, r]) => r.length > 0);
       if (firstWithData) {
         this.currentLog = firstWithData[0];
