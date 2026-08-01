@@ -1047,13 +1047,22 @@
       }
 
       async init() {
-        this.loadLogo();
-        await this.loadUser();
-        await this.loadDevices();
-        this.bindEvents();
-        this.applyScanMode();
         const overlay = document.getElementById("loading-overlay");
-        if (overlay) { overlay.style.opacity = "0"; setTimeout(() => overlay.remove(), 300); }
+        try {
+          this.loadLogo();
+          await this.loadUser();
+          await this.loadDevices();
+          this.bindEvents();
+          this.applyScanMode();
+        } catch(e) {
+          DebugConsole.log(`Error al iniciar: ${e.message}`, "error");
+          if (overlay) {
+            overlay.innerHTML = `<div style="color:var(--c-red);font-size:13px;text-align:center;padding:20px;">Error al cargar<br/><small>${e.message}</small></div>`;
+          }
+          return;
+        } finally {
+          if (overlay) { overlay.style.opacity = "0"; setTimeout(() => overlay.remove(), 300); }
+        }
       }
 
       loadLogo() {

@@ -1413,6 +1413,7 @@
       <div class="modal-footer">
         <button class="btn btn-secondary" id="btn-modal-record-photo" style="display: none;">Ver foto</button>
         <button class="btn btn-secondary" id="btn-modal-record-qr" style="display: none;">Ver QR</button>
+        <button class="btn btn-secondary" id="btn-modal-record-toggle" style="display:none;">Desactivar</button>
         <button class="btn btn-secondary" id="btn-modal-record-delete" style="display:none; color: var(--c-red); border-color: var(--c-red);">Eliminar</button>
         <button class="btn btn-primary" id="btn-modal-record-close">Cerrar</button>
       </div>
@@ -3611,17 +3612,55 @@ var QRCode;
           qrBtn.onclick = null;
         }
 
+        // Botón desactivar/activar
+        const toggleBtn = document.getElementById("btn-modal-record-toggle");
+        toggleBtn.style.display = "inline-flex";
+        toggleBtn.disabled = false;
+        toggleBtn.textContent = rec.status === "inactivo" ? "Activar" : "Desactivar";
+        toggleBtn.style.color = rec.status === "inactivo" ? "var(--c-green)" : "";
+        toggleBtn.style.borderColor = rec.status === "inactivo" ? "var(--c-green)" : "";
+        toggleBtn._confirmPending = false;
+        clearTimeout(toggleBtn._confirmTimer);
+        toggleBtn.onclick = () => this.toggleDispositivo(rec.id, rec.status);
+
+        // Botón eliminar
         const deleteBtn = document.getElementById("btn-modal-record-delete");
         deleteBtn.style.display = "inline-flex";
-        deleteBtn.onclick = () => this.desactivarDispositivo(rec.id);
+        deleteBtn.disabled = false;
+        deleteBtn.textContent = "Eliminar";
+        deleteBtn.style.background = "";
+        deleteBtn._confirmPending = false;
+        clearTimeout(deleteBtn._confirmTimer);
+        deleteBtn.onclick = () => this.eliminarDispositivo(rec.id);
 
         document.getElementById("modal-record-detail").classList.add("active");
       }
 
-      async desactivarDispositivo(deviceId) {
-        const btn = document.getElementById("btn-modal-record-delete");
+      async toggleDispositivo(deviceId, currentStatus) {
+        const btn = document.getElementById("btn-modal-record-toggle");
+        const newStatus = currentStatus === "inactivo" ? "activo" : "inactivo";
+        const label = newStatus === "inactivo" ? "Desactivar" : "Activar";
+        btn.disabled = true;
+        btn.textContent = newStatus === "inactivo" ? "Desactivando..." : "Activando...";
+        try {
+          const updatedBucket = await this.gridClient.mutateBucket("devices_master", async (bucket) => {
+            const rec = bucket.records.find(r => r.id === deviceId);
+            if (rec) rec.status = newStatus;
+            return bucket;
+          });
+          if (updatedBucket?.records) this.devicesRecords = updatedBucket.records;
+          document.getElementById("modal-record-detail").classList.remove("active");
+          this.applyDevicesFilter();
+          DebugConsole.log(`Dispositivo ${deviceId} → ${newStatus}`, "info");
+        } catch(e) {
+          btn.disabled = false;
+          btn.textContent = label;
+          DebugConsole.log(`Error toggle: ${e.message}`, "error");
+        }
+      }
 
-        // Primer click: pide confirmación en el botón mismo
+      async eliminarDispositivo(deviceId) {
+        const btn = document.getElementById("btn-modal-record-delete");
         if (!btn._confirmPending) {
           btn._confirmPending = true;
           btn.textContent = "¿Eliminar?";
@@ -3633,8 +3672,6 @@ var QRCode;
           }, 3000);
           return;
         }
-
-        // Segundo click: eliminar del array
         clearTimeout(btn._confirmTimer);
         btn._confirmPending = false;
         btn.disabled = true;
@@ -3645,15 +3682,14 @@ var QRCode;
             bucket.records = bucket.records.filter(r => r.id !== deviceId);
             return bucket;
           });
-          if (updatedBucket?.records) {
-            this.devicesRecords = updatedBucket.records;
-          }
+          if (updatedBucket?.records) this.devicesRecords = updatedBucket.records;
           document.getElementById("modal-record-detail").classList.remove("active");
           this.applyDevicesFilter();
           DebugConsole.log(`Dispositivo ${deviceId} eliminado`, "info");
         } catch(e) {
           btn.disabled = false;
           btn.textContent = "Eliminar";
+          btn.style.background = "";
           DebugConsole.log(`Error eliminar: ${e.message}`, "error");
         }
       }
@@ -3719,6 +3755,7 @@ var QRCode;
 
         document.getElementById("btn-modal-record-photo").style.display = "none";
         document.getElementById("btn-modal-record-qr").style.display = "none";
+        document.getElementById("btn-modal-record-toggle").style.display = "none";
         document.getElementById("btn-modal-record-delete").style.display = "none";
         document.getElementById("modal-record-detail").classList.add("active");
       }
