@@ -4267,49 +4267,26 @@ var QRCode;
       async compartirDispositivo(rec) {
         const to = encodeURIComponent(rec.correo);
         const subject = encodeURIComponent("QR de acceso");
-        const bodyText = "Adjunto encontrarás tu QR de acceso.\n\nPreséntalo al guardia para ingresar o salir.";
+        const bodyText = "Adjunto encontrarás tu QR de acceso.\n\nPreséntalo al guardia para ingresar o salir.\n\n(Adjunta el archivo qr_acceso.png que se descarga ahora)";
 
-        // Descargar imagen QR desde Grid storage
-        let qrFile = null;
+        // Abrir Gmail ANTES de cualquier await para no ser bloqueado por el popup blocker
+        window.open(
+          `https://mail.google.com/mail/?view=cm&fs=1&to=${to}&su=${subject}&body=${encodeURIComponent(bodyText)}`,
+          "_blank"
+        );
+
+        // Regenerar QR en canvas local (sin fetch de red, sin problemas de CSP)
         try {
-          const res = await fetch(`https://grid.adminml.com/d/${rec.qr_doc_id}?dl=1`, { credentials: "include" });
-          if (res.ok) {
-            const blob = await res.blob();
-            qrFile = new File([blob], "qr_acceso.png", { type: "image/png" });
-          }
-        } catch (e) {
-          DebugConsole.log(`QR fetch: ${e.message}`, "warn");
-        }
-
-        // En móvil: Web Share API abre hoja nativa (Gmail, WhatsApp, etc.) con archivo adjunto
-        if (qrFile && navigator.canShare?.({ files: [qrFile] })) {
-          try {
-            await navigator.share({ files: [qrFile], title: "QR de acceso", text: bodyText });
-            return;
-          } catch (e) {
-            if (e.name === "AbortError") return; // usuario canceló
-          }
-        }
-
-        // Desktop fallback: descargar QR automáticamente + abrir Gmail
-        if (qrFile) {
-          const a = Object.assign(document.createElement("a"), {
-            href: URL.createObjectURL(qrFile),
-            download: "qr_acceso.png",
-          });
+          const dataUrl = await this.generarQR(rec.id);
+          const a = document.createElement("a");
+          a.href = dataUrl;
+          a.download = "qr_acceso.png";
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
-          setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+        } catch (e) {
+          DebugConsole.log(`QR download: ${e.message}`, "warn");
         }
-
-        const gmailBody = encodeURIComponent(
-          bodyText + (qrFile ? "\n\n(Adjunta el archivo qr_acceso.png que se descargó automáticamente)" : "")
-        );
-        window.open(
-          `https://mail.google.com/mail/?view=cm&fs=1&to=${to}&su=${subject}&body=${gmailBody}`,
-          "_blank"
-        );
       }
 
       // Alerta destacada de bloqueo BPP (más prominente que showAlert).
