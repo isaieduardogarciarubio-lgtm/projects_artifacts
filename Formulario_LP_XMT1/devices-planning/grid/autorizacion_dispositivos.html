@@ -1413,7 +1413,7 @@
       <div class="modal-footer">
         <button class="btn btn-secondary" id="btn-modal-record-photo" style="display: none;">Ver foto</button>
         <button class="btn btn-secondary" id="btn-modal-record-qr" style="display: none;">Ver QR</button>
-        <button class="btn btn-secondary" id="btn-modal-record-delete" style="display:none; color: var(--c-red); border-color: var(--c-red);">Desactivar</button>
+        <button class="btn btn-secondary" id="btn-modal-record-delete" style="display:none; color: var(--c-red); border-color: var(--c-red);">Eliminar</button>
         <button class="btn btn-primary" id="btn-modal-record-close">Cerrar</button>
       </div>
     </div>
@@ -3498,6 +3498,8 @@ var QRCode;
 
         const filtered = this.devicesRecords
           .filter((rec) => {
+            if (rec.status === "inactivo") return false;
+
             const matchesSearch = !searchTerm ||
               this.constructor.normalizeForSearch(rec.imei || "").includes(searchTerm) ||
               this.constructor.normalizeForSearch(rec.driver_id || "").includes(searchTerm) ||
@@ -3622,28 +3624,25 @@ var QRCode;
         // Primer click: pide confirmación en el botón mismo
         if (!btn._confirmPending) {
           btn._confirmPending = true;
-          const originalText = btn.textContent;
-          btn.textContent = "¿Confirmar?";
+          btn.textContent = "¿Eliminar?";
           btn.style.background = "rgba(255,92,108,0.15)";
-          const timer = setTimeout(() => {
+          btn._confirmTimer = setTimeout(() => {
             btn._confirmPending = false;
-            btn.textContent = originalText;
+            btn.textContent = "Eliminar";
             btn.style.background = "";
           }, 3000);
-          btn._confirmTimer = timer;
           return;
         }
 
-        // Segundo click: ejecutar
+        // Segundo click: eliminar del array
         clearTimeout(btn._confirmTimer);
         btn._confirmPending = false;
         btn.disabled = true;
-        btn.textContent = "Desactivando...";
+        btn.textContent = "Eliminando...";
         btn.style.background = "";
         try {
           const updatedBucket = await this.gridClient.mutateBucket("devices_master", async (bucket) => {
-            const rec = bucket.records.find(r => r.id === deviceId);
-            if (rec) rec.status = "inactivo";
+            bucket.records = bucket.records.filter(r => r.id !== deviceId);
             return bucket;
           });
           if (updatedBucket?.records) {
@@ -3651,11 +3650,11 @@ var QRCode;
           }
           document.getElementById("modal-record-detail").classList.remove("active");
           this.applyDevicesFilter();
-          DebugConsole.log(`Dispositivo ${deviceId} desactivado`, "info");
+          DebugConsole.log(`Dispositivo ${deviceId} eliminado`, "info");
         } catch(e) {
           btn.disabled = false;
-          btn.textContent = "Desactivar";
-          DebugConsole.log(`Error desactivar: ${e.message}`, "error");
+          btn.textContent = "Eliminar";
+          DebugConsole.log(`Error eliminar: ${e.message}`, "error");
         }
       }
 
