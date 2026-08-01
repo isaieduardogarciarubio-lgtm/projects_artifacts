@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Migrar Bucket — Grid</title>
+  <style>
+    :root {
+      --color-bg: #000000;
+      --color-surface: #1c1c1e;
+      --color-surface-hover: #2c2c2e;
+      --color-surface-elevated: #2c2c2e;
+      --color-highlight: #3a3a3c;
+      --color-text-primary: #ffffff;
+      --color-text-muted: #8e8e93;
+      --color-error: #ff453a;
+      --color-success: #008300;
+      --color-border: #2c2c2e;
+      --radius-pill: 9999px;
+      --radius-card: 20px;
+      --radius-popover: 16px;
+      --spacing-xs: 4px;
+      --spacing-sm: 8px;
+      --spacing-md: 16px;
+      --spacing-lg: 24px;
+      --spacing-xl: 32px;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--color-bg);
+      color: var(--color-text-primary);
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+    .content { max-width: 900px; margin: 0 auto; padding: var(--spacing-lg); }
+    h1 { font-size: 1.4rem; font-weight: 700; margin-bottom: var(--spacing-xs); }
+    .subtitle { color: var(--color-text-muted); font-size: 0.9rem; margin-bottom: var(--spacing-lg); }
+    .toolbar {
+      display: flex; gap: var(--spacing-sm); align-items: center; flex-wrap: wrap;
+      margin-bottom: var(--spacing-lg);
+    }
+    input[type="text"] {
+      background: var(--color-surface); border: 1px solid var(--color-border);
+      border-radius: var(--radius-popover); padding: var(--spacing-sm) var(--spacing-md);
+      color: var(--color-text-primary); font-family: inherit; font-size: 0.9rem;
+      flex: 1; min-width: 200px;
+    }
+    .btn {
+      padding: var(--spacing-sm) var(--spacing-lg); border: none; border-radius: var(--radius-pill);
+      font-size: 0.9rem; font-weight: 600; cursor: pointer;
+      display: inline-flex; align-items: center; gap: var(--spacing-xs);
+    }
+    .btn-primary { background: var(--color-text-primary); color: #000; }
+    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-secondary { background: var(--color-surface); color: var(--color-text-primary); border: 1px solid var(--color-border); }
+    .record-card {
+      background: var(--color-surface); border-radius: var(--radius-card);
+      padding: var(--spacing-md); margin-bottom: var(--spacing-sm);
+      display: flex; flex-direction: column; gap: var(--spacing-sm);
+    }
+    .record-fields {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 4px 16px; font-size: 0.82rem;
+    }
+    .record-fields div span.k { color: var(--color-text-muted); }
+    .record-fields div span.v { font-weight: 600; word-break: break-word; }
+    .record-actions { display: flex; align-items: center; gap: var(--spacing-sm); }
+    select {
+      background: var(--color-surface-elevated); color: var(--color-text-primary);
+      border: 1px solid var(--color-border); border-radius: var(--radius-popover);
+      padding: 6px 10px; font-family: inherit; font-size: 0.85rem; flex: 1;
+    }
+    .badge {
+      font-size: 0.72rem; font-weight: 700; padding: 3px 8px; border-radius: var(--radius-pill);
+    }
+    .badge.auto { background: rgba(0, 131, 0, 0.2); color: #4dd24d; }
+    .badge.manual { background: rgba(255, 209, 0, 0.15); color: #ffd100; }
+    .badge.none { background: rgba(255, 69, 58, 0.15); color: var(--color-error); }
+    #log {
+      margin-top: var(--spacing-lg); background: #0a0a0a; border-radius: var(--radius-popover);
+      padding: var(--spacing-md); font-family: monospace; font-size: 0.78rem; line-height: 1.4;
+      max-height: 300px; overflow-y: auto; white-space: pre-wrap; word-break: break-word;
+    }
+    .empty-state { color: var(--color-text-muted); padding: var(--spacing-xl); text-align: center; }
+  </style>
+</head>
+<body>
+<div class="content">
+  <h1>Migrar Bucket</h1>
+  <p class="subtitle">Herramienta de un solo uso: mueve registros de un bucket mal etiquetado (ej. <code>undefined_master</code>) al bucket correcto de cada log, asignándoles el <code>formId</code> correcto.</p>
+
+  <div class="toolbar">
+    <input type="text" id="doc-id-input" placeholder="data_doc_id" value="01KY8F1NQ0CGK80JNEN1DPNFVF" />
+    <input type="text" id="bucket-input" placeholder="Nombre del bucket a revisar" value="undefined_master" />
+    <button class="btn btn-secondary" id="btn-load">Cargar</button>
+  </div>
+
+  <div id="records-container"></div>
+
+  <div class="toolbar" id="migrate-toolbar" style="display:none;">
+    <button class="btn btn-primary" id="btn-migrate">Migrar registros asignados</button>
+    <span id="migrate-summary" style="color: var(--color-text-muted); font-size: 0.85rem;"></span>
+  </div>
+
+  <div id="log"></div>
+</div>
+
+<script>
+const FORM_IDS = [
+  { id: 'destino_doca', label: 'Pre-Missort (destino_doca)' },
+  { id: 'fury', label: 'FURY' },
+  { id: 'contenerizado', label: 'Contenerizado' },
+  { id: 'linehaul', label: 'Linehaul' },
+  { id: 'inbound_fm', label: 'Inbound FM' },
+];
+
+/**
+ * Detección automática por los campos presentes en el registro — mismo
+ * criterio que usaba el dashboard viejo para detectar tipo de log por
+ * headers de CSV, adaptado a claves de objeto en vez de encabezados.
+ */
+function detectFormId(record) {
+  const has = (k) => Object.prototype.hasOwnProperty.call(record, k);
+  if (has('destino') && has('doca')) return 'destino_doca';
+  if (has('shipment') && has('valor')) return 'fury';
+  if (has('shipment') && has('situacion')) return 'contenerizado';
+  if (has('area') && has('canalizacion')) return 'linehaul';
+  if (has('patente') && has('hallazgo')) return 'inbound_fm';
+  return null;
+}
+
+class GridClient {
+  constructor(docId) {
+    this.docId = docId;
+    this.baseUrl = location.origin;
+    this._updatedAtByName = {};
+  }
+
+  async _fetchWithTimeout(url, options = {}, timeoutMs = 15000) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      return await fetch(url, { ...options, signal: controller.signal });
+    } catch (e) {
+      const err = new Error('Sin conexión con el servidor');
+      err.cause = e;
+      throw err;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+
+  async getStateBucket(name) {
+    const url = `${this.baseUrl}/api/v1/documents/${this.docId}/states/${name}`;
+    const res = await this._fetchWithTimeout(url, { credentials: 'include' });
+    if (res.status === 404) {
+      log(`GET ${name}: 404 (no existe)`, 'info');
+      return null;
+    }
+    if (!res.ok) {
+      log(`GET ${name}: HTTP ${res.status}`, 'error');
+      throw new Error(`${res.status}`);
+    }
+    const body = await res.json();
+    this._updatedAtByName[name] = body.updated_at || '';
+    const count = Array.isArray(body.state?.records) ? body.state.records.length : 0;
+    log(`GET ${name}: OK, ${count} registro(s)`, 'info');
+    return body.state ?? null;
+  }
+
+  async setStateBucket(name, data, attempt = 0) {
+    const ifUpdatedAt = this._updatedAtByName[name] || '';
+    const url = `${this.baseUrl}/api/v1/documents/${this.docId}/states/${name}`;
+    const res = await this._fetchWithTimeout(url, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ state: data, if_updated_at: ifUpdatedAt }),
+      credentials: 'include',
+    });
+
+    if (res.status === 409) {
+      const conflictBody = await res.json().catch(() => ({}));
+      if (conflictBody.current_updated_at) this._updatedAtByName[name] = conflictBody.current_updated_at;
+      log(`PUT ${name}: 409 conflict — reintentando`, 'warn');
+      if (attempt >= 5) throw new Error('Demasiados conflictos');
+      await new Promise((r) => setTimeout(r, 400 + Math.random() * 400));
+      // Re-fetch para mezclar sobre la versión más reciente antes de reintentar
+      const fresh = (await this.getStateBucket(name)) || { records: [] };
+      const mergedRecords = mergeByUid(fresh.records || [], data.records || []);
+      return this.setStateBucket(name, { records: mergedRecords }, attempt + 1);
+    }
+    if (!res.ok) {
+      log(`PUT ${name}: HTTP ${res.status}`, 'error');
+      throw new Error(`${res.status}`);
+    }
+    const body = await res.json();
+    this._updatedAtByName[name] = body.updated_at || '';
+    log(`PUT ${name}: OK, ${data.records?.length ?? 0} registro(s)`, 'info');
+    return { ok: true };
+  }
+}
+
+function mergeByUid(existing, incoming) {
+  const byUid = new Map(existing.map((r) => [r.uid, r]));
+  incoming.forEach((r) => byUid.set(r.uid, r));
+  return Array.from(byUid.values());
+}
+
+function log(message, level = 'info') {
+  const el = document.getElementById('log');
+  const colors = { error: '#ff453a', warn: '#ffd100', info: '#8e8e93' };
+  const ts = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const line = document.createElement('div');
+  line.style.color = colors[level] || colors.info;
+  line.textContent = `[${ts}] ${message}`;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+}
+
+let gridClient = null;
+let sourceBucketName = '';
+let records = [];
+const assignments = {}; // uid -> formId | null
+
+function renderRecords() {
+  const container = document.getElementById('records-container');
+  const migrateToolbar = document.getElementById('migrate-toolbar');
+
+  if (records.length === 0) {
+    container.innerHTML = '<div class="empty-state">Sin registros en este bucket, o no se ha cargado nada todavía.</div>';
+    migrateToolbar.style.display = 'none';
+    return;
+  }
+
+  migrateToolbar.style.display = 'flex';
+
+  container.innerHTML = '';
+  records.forEach((record) => {
+    const card = document.createElement('div');
+    card.className = 'record-card';
+
+    const fieldsHtml = Object.entries(record)
+      .filter(([k]) => k !== 'uid')
+      .map(([k, v]) => {
+        const val = typeof v === 'string' && v.startsWith('data:') ? '(foto en base64)' : String(v ?? '');
+        return `<div><span class="k">${k}:</span> <span class="v">${val.length > 60 ? val.slice(0, 60) + '…' : val}</span></div>`;
+      })
+      .join('');
+
+    const detected = assignments[record.uid] !== undefined ? assignments[record.uid] : detectFormId(record);
+    if (assignments[record.uid] === undefined) assignments[record.uid] = detected;
+
+    const badgeClass = detected ? (detected === detectFormId(record) ? 'auto' : 'manual') : 'none';
+    const badgeText = detected ? (detected === detectFormId(record) ? 'Auto-detectado' : 'Manual') : 'Sin detectar';
+
+    card.innerHTML = `
+      <div class="record-fields">${fieldsHtml}</div>
+      <div class="record-actions">
+        <select data-uid="${record.uid}">
+          <option value="">— Elegir log —</option>
+          ${FORM_IDS.map(f => `<option value="${f.id}" ${detected === f.id ? 'selected' : ''}>${f.label}</option>`).join('')}
+        </select>
+        <span class="badge ${badgeClass}" id="badge-${record.uid}">${badgeText}</span>
+      </div>
+    `;
+
+    container.appendChild(card);
+  });
+
+  container.querySelectorAll('select').forEach((select) => {
+    select.addEventListener('change', (e) => {
+      const uid = e.target.dataset.uid;
+      assignments[uid] = e.target.value || null;
+      const badge = document.getElementById(`badge-${uid}`);
+      const rec = records.find(r => r.uid === uid);
+      const auto = detectFormId(rec);
+      badge.className = `badge ${assignments[uid] ? (assignments[uid] === auto ? 'auto' : 'manual') : 'none'}`;
+      badge.textContent = assignments[uid] ? (assignments[uid] === auto ? 'Auto-detectado' : 'Manual') : 'Sin detectar';
+    });
+  });
+
+  updateMigrateSummary();
+}
+
+function updateMigrateSummary() {
+  const assigned = Object.values(assignments).filter(Boolean).length;
+  document.getElementById('migrate-summary').textContent = `${assigned} de ${records.length} listos para migrar`;
+  document.getElementById('btn-migrate').disabled = assigned === 0;
+}
+
+document.getElementById('btn-load').addEventListener('click', async () => {
+  const docId = document.getElementById('doc-id-input').value.trim();
+  const bucketName = document.getElementById('bucket-input').value.trim();
+  if (!docId || !bucketName) {
+    log('Falta el data_doc_id o el nombre del bucket', 'error');
+    return;
+  }
+
+  gridClient = new GridClient(docId);
+  sourceBucketName = bucketName;
+
+  try {
+    const data = await gridClient.getStateBucket(bucketName);
+    records = (data && data.records) || [];
+    Object.keys(assignments).forEach(k => delete assignments[k]);
+    log(`Cargados ${records.length} registro(s) de "${bucketName}"`, 'info');
+    renderRecords();
+  } catch (e) {
+    log(`Error al cargar: ${e.message}`, 'error');
+  }
+});
+
+document.getElementById('btn-migrate').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-migrate');
+  btn.disabled = true;
+
+  const toMigrate = records.filter(r => assignments[r.uid]);
+  if (toMigrate.length === 0) {
+    log('No hay registros con log asignado', 'warn');
+    btn.disabled = false;
+    return;
+  }
+
+  log(`Migrando ${toMigrate.length} registro(s)...`, 'info');
+
+  // Agrupar por bucket destino
+  const byTarget = {};
+  toMigrate.forEach((r) => {
+    const formId = assignments[r.uid];
+    if (!byTarget[formId]) byTarget[formId] = [];
+    byTarget[formId].push({ ...r, formId });
+  });
+
+  const migratedUids = new Set();
+
+  for (const [formId, recs] of Object.entries(byTarget)) {
+    const targetBucket = `${formId}_master`;
+    try {
+      const existing = (await gridClient.getStateBucket(targetBucket)) || { records: [] };
+      const merged = mergeByUid(existing.records || [], recs);
+      await gridClient.setStateBucket(targetBucket, { records: merged });
+      recs.forEach(r => migratedUids.add(r.uid));
+      log(`✓ ${recs.length} registro(s) movido(s) a ${targetBucket}`, 'info');
+    } catch (e) {
+      log(`✗ Falló migración a ${targetBucket}: ${e.message}`, 'error');
+    }
+  }
+
+  if (migratedUids.size > 0) {
+    try {
+      const remaining = records.filter(r => !migratedUids.has(r.uid));
+      await gridClient.setStateBucket(sourceBucketName, { records: remaining });
+      log(`Bucket "${sourceBucketName}" actualizado: ${remaining.length} registro(s) restante(s)`, 'info');
+      records = remaining;
+      Object.keys(assignments).forEach(uid => {
+        if (migratedUids.has(uid)) delete assignments[uid];
+      });
+      renderRecords();
+    } catch (e) {
+      log(`✗ No se pudo actualizar "${sourceBucketName}" tras migrar: ${e.message}`, 'error');
+    }
+  }
+
+  log(`Migración completa: ${migratedUids.size} de ${toMigrate.length} movidos exitosamente`, 'info');
+  btn.disabled = false;
+  updateMigrateSummary();
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,1480 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Validación de Dispositivos</title>
+  <style>
+    :root {
+      --bg: #090C0E;
+      --surface: #11161A;
+      --surface-2: #161D22;
+      --border: #1F2830;
+      --text: #F4F6F8;
+      --text-sub: #AAB4BC;
+      --text-mut: #6B757D;
+      --c-green: #00D689;
+      --c-green-strong: #00B876;
+      --c-red: #FF5C6C;
+      --c-red-strong: #E8394A;
+      --c-orange: #FF9E45;
+      --r-sm: 8px;
+      --r-md: 12px;
+      --r-lg: 18px;
+      --r-pill: 999px;
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto,
+        Helvetica, Arial, sans-serif;
+      --state: var(--c-green);
+      --state-strong: var(--c-green-strong);
+      --state-glow: rgba(0, 214, 137, 0.18);
+      --state-glow-soft: rgba(0, 214, 137, 0.07);
+      --on-state: #052014;
+    }
+
+    .stage[data-state="denied"] {
+      --state: var(--c-red);
+      --state-strong: var(--c-red-strong);
+      --state-glow: rgba(255, 92, 108, 0.2);
+      --state-glow-soft: rgba(255, 92, 108, 0.08);
+      --on-state: #280a0e;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html,
+    body {
+      height: 100%;
+      font-family: var(--font);
+      color: var(--text);
+      background: var(--bg);
+      overflow-x: hidden;
+    }
+
+    body {
+      background-image: radial-gradient(
+          1000px 640px at 100% -8%,
+          rgba(255, 209, 0, 0.09),
+          transparent 55%
+        ),
+        radial-gradient(
+          760px 520px at -12% 108%,
+          rgba(255, 209, 0, 0.04),
+          transparent 60%
+        );
+      background-attachment: fixed;
+    }
+
+    .container {
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ──── NAV ──── */
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 16px;
+      position: relative;
+      z-index: 5;
+      background: linear-gradient(180deg, rgba(9, 12, 14, 0.85), rgba(9, 12, 14, 0));
+      backdrop-filter: blur(10px);
+    }
+
+    .brand {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+    }
+
+    .navbar-logo {
+      display: block;
+      width: 48px;
+      height: 48px;
+      flex-shrink: 0;
+      object-fit: contain;
+      border-radius: var(--r-sm);
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .icon-btn {
+      width: 38px;
+      height: 38px;
+      flex-shrink: 0;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--border);
+      border-radius: var(--r-pill);
+      background: var(--surface-2);
+      color: var(--text-sub);
+      cursor: pointer;
+      transition: all 0.16s;
+    }
+
+    .icon-btn:hover {
+      color: var(--text);
+      border-color: var(--c-orange);
+    }
+
+    .user-avatar {
+      width: 38px;
+      height: 38px;
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--r-pill);
+      background: linear-gradient(180deg, #FFD100, #E6BC00);
+      color: #1a1a1a;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    /* ──── ENTRADA/SALIDA TOGGLE ──── */
+    .mode-toggle {
+      display: flex;
+      gap: 4px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--r-pill);
+      padding: 4px;
+    }
+
+    .mode-btn {
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      border: none;
+      border-radius: var(--r-pill);
+      background: transparent;
+      color: var(--text-sub);
+      cursor: pointer;
+      transition: all 0.16s;
+      white-space: nowrap;
+    }
+
+    .mode-btn.active {
+      background: var(--c-green);
+      color: var(--bg);
+    }
+
+    .mode-btn:hover:not(.active) {
+      color: var(--text);
+    }
+
+    /* ──── STAGES ──── */
+    .stage {
+      min-height: 100dvh;
+      position: relative;
+      overflow: hidden;
+      display: none;
+      flex-direction: column;
+      background: radial-gradient(90vw 60vh at 50% -10%, var(--state-glow), transparent 60%),
+        radial-gradient(
+          80vw 55vh at -10% 112%,
+          var(--state-glow-soft),
+          transparent 62%
+        ),
+        var(--bg);
+    }
+
+    .stage.active {
+      display: flex;
+    }
+
+    /* ──── ESCÁNER ──── */
+    .scanner-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 16px;
+      gap: 12px;
+      overflow-y: auto;
+    }
+
+    #scanner-video {
+      width: 100%;
+      max-width: 100%;
+      height: 320px;
+      border: 2px solid var(--border);
+      border-radius: var(--r-md);
+      background: var(--surface-2);
+      object-fit: cover;
+    }
+
+    .btn {
+      padding: 12px 16px;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      background: var(--surface-2);
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.16s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .btn:hover {
+      border-color: var(--state);
+      background: var(--surface);
+    }
+
+    .btn.primary {
+      background: linear-gradient(180deg, var(--state), var(--state-strong));
+      border: none;
+      color: var(--on-state);
+    }
+
+    .search-input {
+      padding: 12px 16px;
+      font-family: inherit;
+      font-size: 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      background: var(--surface);
+      color: var(--text);
+      transition: border-color 0.2s;
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: var(--state);
+    }
+
+    .search-input::placeholder {
+      color: var(--text-mut);
+    }
+
+    /* ──── TOGGLE HANDHELD / CÁMARA ──── */
+    /* Handheld (lector HID integrado que "teclea" el código + Enter) es el */
+    /* modo principal de captura; Cámara queda como alternativa.            */
+    .scan-mode-toggle {
+      display: flex;
+      gap: 4px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--r-pill);
+      padding: 4px;
+    }
+
+    .scan-mode-btn {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      border: none;
+      background: transparent;
+      color: var(--text-sub);
+      font-family: inherit;
+      border-radius: var(--r-pill);
+      padding: 10px 12px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.16s;
+    }
+
+    .scan-mode-btn svg {
+      flex-shrink: 0;
+    }
+
+    .scan-mode-btn.active {
+      background: var(--text);
+      color: var(--bg);
+    }
+
+    .scan-mode-btn:hover:not(.active) {
+      color: var(--text);
+    }
+
+    .scan-hint {
+      font-size: 12px;
+      color: var(--text-mut);
+      text-align: center;
+    }
+
+    .scan-hint.error {
+      color: var(--c-red);
+    }
+
+    /* ──── RESULTADO ──── */
+    .hero {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 22px calc(40px + env(safe-area-inset-bottom));
+      text-align: center;
+    }
+
+    .hero-inner {
+      width: 100%;
+      max-width: 400px;
+      animation: rise 0.5s cubic-bezier(0.2, 0.7, 0.3, 1);
+    }
+
+    @keyframes rise {
+      from {
+        opacity: 0;
+        transform: translateY(14px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .ring {
+      width: 44vw;
+      max-width: 180px;
+      aspect-ratio: 1;
+      margin: 0 auto;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      position: relative;
+      background: radial-gradient(circle at 50% 40%, var(--state-glow), transparent 70%);
+    }
+
+    .ring::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 2px solid var(--state);
+      opacity: 0.32;
+    }
+
+    .ring::after {
+      content: "";
+      position: absolute;
+      inset: -14px;
+      border-radius: 50%;
+      border: 1px solid var(--state);
+      opacity: 0.14;
+      animation: pulse 2.6s ease-out infinite;
+    }
+
+    @keyframes pulse {
+      0% {
+        transform: scale(0.9);
+        opacity: 0.26;
+      }
+      70% {
+        transform: scale(1.2);
+        opacity: 0;
+      }
+      100% {
+        opacity: 0;
+      }
+    }
+
+    .ring .disc {
+      width: 74%;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(180deg, var(--state), var(--state-strong));
+      box-shadow: 0 14px 38px -10px var(--state-glow),
+        inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    }
+
+    .ring svg {
+      width: 42%;
+      stroke: var(--on-state);
+      stroke-width: 3;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .ring svg .draw {
+      stroke-dasharray: 48;
+      stroke-dashoffset: 48;
+      animation: draw 0.55s 0.25s forwards ease;
+    }
+
+    .ring svg .draw.d2 {
+      animation-delay: 0.42s;
+    }
+
+    @keyframes draw {
+      to {
+        stroke-dashoffset: 0;
+      }
+    }
+
+    .title {
+      margin-top: 26px;
+      font-size: clamp(30px, 9vw, 44px);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.03;
+      background: linear-gradient(100deg, #fff 0%, var(--state) 78%, var(--state-strong) 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+      margin: 14px auto 0;
+      max-width: 320px;
+      font-size: 15px;
+      line-height: 1.55;
+      color: var(--text-sub);
+    }
+
+    .devices-list {
+      margin: 20px auto 0;
+      width: 100%;
+      max-width: 360px;
+      text-align: left;
+    }
+
+    .device-card {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      padding: 14px;
+      margin-bottom: 10px;
+      font-size: 13px;
+    }
+
+    .device-card .row {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: baseline;
+      padding: 6px 0;
+    }
+
+    .device-card .k {
+      font-weight: 600;
+      color: var(--text-mut);
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.05em;
+    }
+
+    .device-card .v {
+      color: var(--text);
+      text-align: right;
+      word-break: break-word;
+    }
+
+    .device-card.inactive {
+      opacity: 0.6;
+      border-color: var(--border);
+    }
+
+    .device-card .status-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: var(--r-pill);
+      font-size: 11px;
+      font-weight: 700;
+      background: var(--state-glow);
+      color: var(--state);
+    }
+
+    .device-card.inactive .status-badge {
+      background: rgba(255, 92, 108, 0.12);
+      color: var(--c-red);
+    }
+
+    .btn-view-photo {
+      padding: 6px 10px;
+      margin-top: 8px;
+      font-size: 12px;
+      background: transparent;
+      border: 1px solid var(--state);
+      color: var(--state);
+      cursor: pointer;
+      border-radius: var(--r-sm);
+      transition: all 0.16s;
+    }
+
+    .btn-view-photo:hover {
+      background: var(--state-glow);
+    }
+
+    .action-buttons {
+      margin-top: 20px;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(9, 12, 14, 0.75);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 16px;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: 20px;
+      max-width: 100%;
+      width: 100%;
+      max-height: 80vh;
+      overflow-y: auto;
+      text-align: center;
+    }
+
+    .modal-content img {
+      width: 100%;
+      max-width: 300px;
+      border-radius: var(--r-md);
+      margin: 16px 0;
+    }
+
+    .modal-close {
+      float: right;
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: var(--surface-2);
+      border-radius: var(--r-pill);
+      color: var(--text-sub);
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+    }
+
+    @media (min-width: 769px) {
+      .nav {
+        padding: 16px 24px;
+      }
+
+      .brand {
+        font-size: 18px;
+      }
+
+      .scanner-wrapper {
+        padding: 20px;
+      }
+
+      #scanner-video {
+        height: 400px;
+      }
+
+      .hero-inner {
+        max-width: 440px;
+      }
+
+      .ring {
+        max-width: 200px;
+      }
+
+      .title {
+        font-size: clamp(40px, 6vw, 56px);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        transition: none !important;
+        animation: none !important;
+      }
+
+      .ring svg .draw {
+        stroke-dashoffset: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- STAGE: ESCÁNER -->
+  <section class="stage active" id="stage-scanner" data-state="valid">
+    <nav class="nav">
+      <div class="brand">
+        <img id="navbar-logo-img" class="navbar-logo" alt="Validate" />
+      </div>
+      <div class="mode-toggle">
+        <button class="mode-btn active" id="btn-mode-entrada" data-mode="entrada">Entrada</button>
+        <button class="mode-btn" id="btn-mode-salida" data-mode="salida">Salida</button>
+      </div>
+      <div class="nav-actions">
+        <button class="icon-btn" id="btn-debug" title="Depuración">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+        </button>
+        <div class="user-avatar" id="user-avatar" title="">?</div>
+      </div>
+    </nav>
+    <div class="scanner-wrapper">
+      <div class="scan-mode-toggle">
+        <button type="button" class="scan-mode-btn active" id="btn-scanmode-handheld" data-scan-mode="handheld">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><line x1="6" y1="10" x2="6" y2="10"/><line x1="10" y1="10" x2="10" y2="10"/><line x1="14" y1="10" x2="14" y2="10"/><line x1="18" y1="10" x2="18" y2="10"/><line x1="6" y1="14" x2="18" y2="14"/></svg>
+          <span>Handheld</span>
+        </button>
+        <button type="button" class="scan-mode-btn" id="btn-scanmode-camera" data-scan-mode="camera">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9a2 2 0 012-2h1.2a2 2 0 001.6-.8l.4-.6a2 2 0 011.6-.8h4.4a2 2 0 011.6.8l.4.6a2 2 0 001.6.8H19a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><circle cx="12" cy="13" r="3.5"/></svg>
+          <span>Cámara</span>
+        </button>
+      </div>
+
+      <div id="scanner-body"></div>
+
+      <div class="scan-hint" id="scan-hint"></div>
+    </div>
+  </section>
+
+  <!-- STAGE: RESULTADO VÁLIDO -->
+  <section class="stage" id="stage-valid" data-state="valid">
+    <nav class="nav">
+      <div class="brand">
+        <img id="navbar-logo-img-2" class="navbar-logo" alt="Validate" />
+      </div>
+      <div class="nav-actions">
+        <button class="icon-btn" id="btn-debug-2" title="Depuración">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+        </button>
+        <div class="user-avatar" id="user-avatar-2" title="">?</div>
+      </div>
+    </nav>
+    <div class="hero">
+      <div class="hero-inner">
+        <div class="ring">
+          <div class="disc">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <polyline class="draw" points="20 6 9 17 4 12" />
+            </svg>
+          </div>
+        </div>
+        <h1 class="title">Acceso válido</h1>
+        <p class="subtitle" id="result-subtitle">La solicitud es válida.</p>
+        <div class="devices-list" id="devices-list"></div>
+        <div class="action-buttons">
+          <button class="btn primary" id="btn-scan-again">Escanear otro</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STAGE: RESULTADO DENEGADO -->
+  <section class="stage" id="stage-denied" data-state="denied">
+    <nav class="nav">
+      <div class="brand">
+        <img id="navbar-logo-img-3" class="navbar-logo" alt="Validate" />
+      </div>
+      <div class="nav-actions">
+        <button class="icon-btn" id="btn-debug-3" title="Depuración">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+        </button>
+        <div class="user-avatar" id="user-avatar-3" title="">?</div>
+      </div>
+    </nav>
+    <div class="hero">
+      <div class="hero-inner">
+        <div class="ring">
+          <div class="disc">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <line class="draw" x1="6" y1="6" x2="18" y2="18" />
+              <line class="draw d2" x1="18" y1="6" x2="6" y2="18" />
+            </svg>
+          </div>
+        </div>
+        <h1 class="title">Acceso denegado</h1>
+        <p class="subtitle" id="deny-reason">Motivo desconocido.</p>
+        <div class="action-buttons">
+          <button class="btn primary" id="btn-scan-again-2">Escanear otro</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MODAL: VER FOTO -->
+  <div class="modal" id="modal-photo">
+    <div class="modal-content">
+      <button class="modal-close" onclick="document.getElementById('modal-photo').classList.remove('active')">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <h3 style="margin-top: 20px; margin-bottom: 16px;">Foto del dispositivo</h3>
+      <img id="modal-photo-img" src="" alt="Foto del dispositivo" />
+    </div>
+  </div>
+
+  <!-- DEBUG CONSOLE (reutilizado) -->
+  <div id="debug-console" style="position: fixed; bottom: 0; left: 0; right: 0; max-height: 40vh; overflow-y: auto; background: var(--surface-2); border-top: 1px solid var(--border); padding: 12px; font-family: monospace; font-size: 11px; color: var(--text-sub); z-index: 90; display: none;"></div>
+
+  <script>
+    /* ─────────────────────────────────────────────────────────────────────── */
+    /* DEBUG CONSOLE */
+    /* ─────────────────────────────────────────────────────────────────────── */
+
+    const DebugConsole = {
+      logs: [],
+      setup() {
+        this.render();
+      },
+      log(msg, type = "info") {
+        const timestamp = new Date().toLocaleTimeString("es-MX", {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        });
+        this.logs.push({ timestamp, msg, type });
+        if (this.logs.length > 100) this.logs.shift();
+        this.render();
+      },
+      render() {
+        const el = document.getElementById("debug-console");
+        if (!el) return;
+        el.innerHTML = this.logs
+          .map((l) => `<div>[${l.timestamp}] [${l.type}] ${l.msg}</div>`)
+          .join("");
+        el.scrollTop = el.scrollHeight;
+      },
+      toggle() {
+        const el = document.getElementById("debug-console");
+        if (el) el.style.display = el.style.display === "none" ? "block" : "none";
+      },
+    };
+
+    /* ─────────────────────────────────────────────────────────────────────── */
+    /* GRID CLIENT (reutilizado) */
+    /* ─────────────────────────────────────────────────────────────────────── */
+
+    class GridClient {
+      constructor(docId) {
+        this.docId = docId;
+        this.baseUrl = location.origin;
+        this._updatedAtByName = {};
+      }
+
+      _fetchWithTimeout(url, options = {}, timeout = 10000) {
+        const controller = new AbortController();
+        const id = setTimeout(() => controller.abort(), timeout);
+        try {
+          return fetch(url, { ...options, signal: controller.signal });
+        } finally {
+          clearTimeout(id);
+        }
+      }
+
+      async getStateBucket(name) {
+        const url = `${this.baseUrl}/api/v1/documents/${this.docId}/states/${name}`;
+        const res = await this._fetchWithTimeout(url, { credentials: "include" });
+        if (res.status === 404) {
+          DebugConsole.log(`GET ${name}: 404`, "info");
+          return null;
+        }
+        if (!res.ok) {
+          const body = await res.text().catch(() => "");
+          DebugConsole.log(`GET ${name}: HTTP ${res.status}`, "error");
+          throw new Error(`HTTP ${res.status}`);
+        }
+        const body = await res.json();
+        this._updatedAtByName[name] = body.updated_at || "";
+        DebugConsole.log(
+          `GET ${name}: OK, records=${Array.isArray(body.state?.records) ? body.state.records.length : "n/a"}`,
+          "info"
+        );
+        return body.state ?? null;
+      }
+
+      async setStateBucket(name, data) {
+        const ifUpdatedAt = this._updatedAtByName[name] || "";
+        const url = `${this.baseUrl}/api/v1/documents/${this.docId}/states/${name}`;
+        const res = await this._fetchWithTimeout(
+          url,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ state: data, if_updated_at: ifUpdatedAt }),
+            credentials: "include",
+          },
+          30000
+        );
+
+        if (res.status === 409) {
+          const conflictBody = await res.json().catch(() => ({}));
+          if (conflictBody.current_updated_at) {
+            this._updatedAtByName[name] = conflictBody.current_updated_at;
+          }
+          DebugConsole.log(`PUT ${name}: 409 conflicto, reintentando`, "warn");
+          return { conflict: true };
+        }
+
+        if (!res.ok) {
+          const body = await res.text().catch(() => "");
+          DebugConsole.log(`PUT ${name}: HTTP ${res.status}`, "error");
+          throw new Error(`HTTP ${res.status}`);
+        }
+
+        const body = await res.json();
+        this._updatedAtByName[name] = body.updated_at || "";
+        DebugConsole.log(`PUT ${name}: OK`, "info");
+        return { ok: true };
+      }
+
+      async mutateBucket(name, mutateFn, maxRetries = 4) {
+        let retries = 0;
+        while (retries < maxRetries) {
+          try {
+            let bucket = await this.getStateBucket(name);
+            if (!bucket || typeof bucket !== 'object') {
+              bucket = { records: [] };
+            }
+            if (!Array.isArray(bucket.records)) {
+              bucket = { ...bucket, records: [] };
+            }
+
+            bucket = await mutateFn(bucket);
+
+            const result = await this.setStateBucket(name, bucket);
+            if (result.conflict) {
+              retries++;
+              const delay = Math.pow(2, retries - 1) * 100;
+              DebugConsole.log(`mutateBucket ${name}: conflicto, reintentando en ${delay}ms (intento ${retries}/${maxRetries})`, "warn");
+              await new Promise((r) => setTimeout(r, delay));
+              continue;
+            }
+
+            DebugConsole.log(`mutateBucket ${name}: éxito después de ${retries} reintentos`, "info");
+            return bucket;
+          } catch (e) {
+            DebugConsole.log(`mutateBucket ${name} error: ${e.message}`, "error");
+            throw e;
+          }
+        }
+        throw new Error(`mutateBucket ${name}: máximos reintentos (${maxRetries}) alcanzados`);
+      }
+
+      async getCurrentUser() {
+        const res = await this._fetchWithTimeout(
+          `${this.baseUrl}/api/v1/me`,
+          { credentials: "include" }
+        );
+        if (!res.ok) return null;
+        return await res.json();
+      }
+
+      async getDownloadUrl(docId) {
+        return (
+          `${this.baseUrl}/api/v1/documents/${docId}/download` ||
+          null
+        );
+      }
+    }
+
+    /* ─────────────────────────────────────────────────────────────────────── */
+    /* SCANNER ENGINE (reutilizado) */
+    /* ─────────────────────────────────────────────────────────────────────── */
+
+    class ScannerEngine {
+      constructor() {
+        this.stream = null;
+        this.detector = null;
+      }
+
+      async start(videoEl, onDetect) {
+        this.stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" } },
+          audio: false,
+        });
+
+        videoEl.srcObject = this.stream;
+        await new Promise((r) => (videoEl.onloadedmetadata = r));
+        videoEl.play();
+
+        this.detector =
+          "BarcodeDetector" in window
+            ? new BarcodeDetector({ formats: ["qr_code"] })
+            : null;
+
+        const loop = async () => {
+          if (!this.stream) return;
+          try {
+            if (this.detector) {
+              const barcodes = await this.detector.detect(videoEl);
+              for (const barcode of barcodes) {
+                onDetect(barcode.rawValue, barcode.format);
+              }
+            }
+          } catch (e) {}
+          requestAnimationFrame(loop);
+        };
+        loop();
+      }
+
+      stop() {
+        if (this.stream) {
+          this.stream.getTracks().forEach((t) => t.stop());
+          this.stream = null;
+        }
+      }
+    }
+
+    /* ─────────────────────────────────────────────────────────────────────── */
+    /* MAIN APP */
+    /* ─────────────────────────────────────────────────────────────────────── */
+
+    class ValidacionApp {
+      constructor() {
+        this.docId =
+          new URLSearchParams(location.search).get("data_doc_id") ||
+          "01KYBPWY7AYSXC0MGZVH1JT2TV";
+        this.gridClient = new GridClient(this.docId);
+        this.scanner = new ScannerEngine();
+        this.currentUser = null;
+        this.devicesBucket = null;
+        this.scansBucket = null;
+        this.mode = localStorage.getItem("validacion-mode") || "entrada";
+        this.scanMode = localStorage.getItem("validacion-scanmode") || "handheld";
+
+        DebugConsole.setup();
+        DebugConsole.log(`Documento: ${this.docId}`, "info");
+
+        this.init();
+      }
+
+      static getInitials(email) {
+        if (!email) return "?";
+        const local = email.split("@")[0] || "";
+        const parts = local.split(/[._-]+/).filter(Boolean);
+        return parts.length >= 2
+          ? (parts[0][0] + parts[1][0]).toUpperCase()
+          : parts[0]?.[0]?.toUpperCase() || "?";
+      }
+
+      async init() {
+        this.loadLogo();
+        await this.loadUser();
+        await this.loadDevices();
+        this.bindEvents();
+        this.applyScanMode();
+      }
+
+      loadLogo() {
+        const url = "https://grid.adminml.com/d/" + NAVBAR_LOGO_DOC_ID + "?dl=1";
+        ["navbar-logo-img", "navbar-logo-img-2", "navbar-logo-img-3"].forEach((id) => {
+          const navImg = document.getElementById(id);
+          if (navImg) {
+            navImg.src = url;
+            navImg.style.display = "block";
+          }
+        });
+      }
+
+      async loadUser() {
+        try {
+          this.currentUser = await this.gridClient.getCurrentUser();
+          if (this.currentUser) {
+            const initials = ValidacionApp.getInitials(this.currentUser.email);
+            document.getElementById("user-avatar").textContent = initials;
+            document.getElementById("user-avatar-2").textContent = initials;
+            document.getElementById("user-avatar-3").textContent = initials;
+            DebugConsole.log(
+              `Usuario: ${this.currentUser.name || this.currentUser.email}`,
+              "info"
+            );
+          }
+        } catch (e) {
+          DebugConsole.log(`No se pudo cargar usuario: ${e.message}`, "warn");
+        }
+      }
+
+      async loadDevices() {
+        try {
+          this.devicesBucket =
+            (await this.gridClient.getStateBucket("devices_master")) || {};
+          DebugConsole.log(
+            `Dispositivos cargados: ${(this.devicesBucket.records || []).length}`,
+            "info"
+          );
+        } catch (e) {
+          DebugConsole.log(`Error cargando dispositivos: ${e.message}`, "error");
+        }
+      }
+
+      // Handheld (lector HID integrado que "teclea" el código + Enter) es el
+      // modo principal de captura, ya que en el sitio se escanea sobre todo
+      // con el lector propio de la handheld. Cámara queda como alternativa
+      // para cuando no hay lector disponible. El modo se persiste por
+      // dispositivo en localStorage.
+      setScanMode(mode) {
+        if (mode !== "handheld" && mode !== "camera") return;
+        this.scanMode = mode;
+        localStorage.setItem("validacion-scanmode", mode);
+        document.getElementById("btn-scanmode-handheld").classList.toggle("active", mode === "handheld");
+        document.getElementById("btn-scanmode-camera").classList.toggle("active", mode === "camera");
+        DebugConsole.log(`Modo de escaneo: ${mode}`, "info");
+        this.applyScanMode();
+      }
+
+      applyScanMode() {
+        this.scanner.stop();
+        if (this.scanMode === "camera") {
+          this.enterCameraState();
+        } else {
+          this.enterHandheldState();
+        }
+      }
+
+      // Input siempre enfocado y auto-reenfocado: el lector HID solo
+      // "escribe" donde está el foco. Enter confirma, igual que la
+      // búsqueda manual que reemplaza.
+      enterHandheldState() {
+        this.scanner.stop();
+        const body = document.getElementById("scanner-body");
+        body.innerHTML = `<input type="text" class="search-input" id="handheld-input" placeholder="Escanea con el lector..." style="width: 100%;" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />`;
+
+        const hint = document.getElementById("scan-hint");
+        hint.textContent = "Modo handheld — escanea con el lector (o escribe y Enter).";
+        hint.classList.remove("error");
+
+        const input = document.getElementById("handheld-input");
+
+        input.addEventListener("keydown", (e) => {
+          if (e.key !== "Enter") return;
+          e.preventDefault();
+          const val = input.value.trim();
+          if (!val) return;
+          input.value = "";
+          this.onDetect(val);
+        });
+
+        input.addEventListener("blur", () => {
+          setTimeout(() => {
+            if (this.scanMode === "handheld" && document.body.contains(input)) input.focus();
+          }, 50);
+        });
+
+        setTimeout(() => input.focus(), 60);
+      }
+
+      async enterCameraState() {
+        this.scanner.stop();
+        const body = document.getElementById("scanner-body");
+        body.innerHTML = `<video id="scanner-video" autoplay playsinline muted></video>`;
+
+        const hint = document.getElementById("scan-hint");
+        hint.textContent = "Escaneando... Apunta la cámara al código.";
+        hint.classList.remove("error");
+
+        try {
+          await this.scanner.start(
+            document.getElementById("scanner-video"),
+            (value) => this.onDetect(value)
+          );
+          DebugConsole.log("Escáner iniciado", "info");
+        } catch (e) {
+          DebugConsole.log(`Error escáner: ${e.message}`, "error");
+          hint.textContent = "Cámara no disponible. Cambia a modo Handheld.";
+          hint.classList.add("error");
+        }
+      }
+
+      bindEvents() {
+        document.getElementById("btn-debug").addEventListener("click", () =>
+          DebugConsole.toggle()
+        );
+        document.getElementById("btn-debug-2").addEventListener("click", () =>
+          DebugConsole.toggle()
+        );
+        document.getElementById("btn-debug-3").addEventListener("click", () =>
+          DebugConsole.toggle()
+        );
+
+        document.getElementById("btn-scan-again").addEventListener("click", () =>
+          this.backToScanner()
+        );
+        document.getElementById("btn-scan-again-2").addEventListener("click", () =>
+          this.backToScanner()
+        );
+
+        document.getElementById("btn-scanmode-handheld").addEventListener("click", () =>
+          this.setScanMode("handheld")
+        );
+        document.getElementById("btn-scanmode-camera").addEventListener("click", () =>
+          this.setScanMode("camera")
+        );
+
+        document.getElementById("btn-mode-entrada").addEventListener("click", () =>
+          this.setMode("entrada")
+        );
+        document.getElementById("btn-mode-salida").addEventListener("click", () =>
+          this.setMode("salida")
+        );
+
+        this.updateModeDisplay();
+      }
+
+      setMode(newMode) {
+        this.mode = newMode;
+        localStorage.setItem("validacion-mode", newMode);
+        this.updateModeDisplay();
+        DebugConsole.log(`Modo cambió a: ${newMode}`, "info");
+      }
+
+      updateModeDisplay() {
+        document.getElementById("btn-mode-entrada").classList.toggle("active", this.mode === "entrada");
+        document.getElementById("btn-mode-salida").classList.toggle("active", this.mode === "salida");
+      }
+
+      static normalizeId(v) {
+        return String(v ?? "")
+          .trim()
+          .replace(/^0+(?=.)/, "")
+          .toLowerCase();
+      }
+
+      async onDetect(value) {
+        DebugConsole.log(`Detectado: ${value}`, "info");
+        this.scanner.stop();
+
+        const trimmed = String(value).trim();
+
+        // Parsear: ¿driver JSON o device id?
+        let type = null;
+        let driverId = null;
+        let deviceId = null;
+        let looksLikeJson = trimmed.startsWith("{") || trimmed.startsWith("[");
+
+        if (looksLikeJson) {
+          try {
+            const json = JSON.parse(trimmed);
+            if (json.driver_id !== undefined && json.driver_id !== null && json.driver_id !== "") {
+              type = "driver";
+              driverId = json.driver_id;
+              DebugConsole.log(`Tipo: Driver ${driverId}`, "info");
+            } else {
+              DebugConsole.log(
+                `JSON reconocido pero sin campo "driver_id": ${JSON.stringify(json)}`,
+                "warn"
+              );
+            }
+          } catch (e) {
+            DebugConsole.log(`Error parseando JSON: ${e.message}`, "warn");
+          }
+        }
+
+        if (!type) {
+          if (trimmed.startsWith("dev_")) {
+            type = "device";
+            deviceId = trimmed;
+            DebugConsole.log(`Tipo: Device ${deviceId}`, "info");
+          } else if (!looksLikeJson) {
+            // Asumir es driver_id directo (texto plano, no JSON)
+            type = "driver";
+            driverId = trimmed;
+            DebugConsole.log(`Tipo: Driver (búsqueda) ${driverId}`, "info");
+          }
+        }
+
+        if (!type) {
+          this.showDenied("No registrado", "El código escaneado no tiene un formato reconocido.");
+          return;
+        }
+
+        // Validar (normalizando driver_id: espacios, mayúsculas y ceros a la izquierda)
+        const normDriverId = type === "driver" ? ValidacionApp.normalizeId(driverId) : null;
+        const devices = (this.devicesBucket?.records || []).filter((d) => {
+          if (type === "device") return d.id === deviceId;
+          if (type === "driver") return ValidacionApp.normalizeId(d.driver_id) === normDriverId;
+          return false;
+        });
+
+        DebugConsole.log(
+          `Buscando ${type === "driver" ? `driver_id=${normDriverId}` : `device_id=${deviceId}`} · encontrados=${devices.length}`,
+          "info"
+        );
+
+        if (devices.length === 0) {
+          this.showDenied("No registrado", "No existe un dispositivo registrado con este código.");
+          return;
+        }
+
+        const now = new Date();
+        let anyValid = false;
+        const toUpdate = [];
+        let validationResults = [];
+
+        for (const dev of devices) {
+          const isDriver = dev.owner_tipo === "driver";
+
+          if (isDriver) {
+            // Drivers: aplicar regla de 90 días (lógica original)
+            const lastScan = dev.ultimo_escaneo ? new Date(dev.ultimo_escaneo) : new Date(dev.timestamp);
+            const daysSince = Math.floor((now - lastScan) / (1000 * 60 * 60 * 24));
+
+            DebugConsole.log(
+              `Driver ${dev.id}: status=${dev.status}, días=${daysSince}`,
+              "info"
+            );
+
+            if (dev.status === "inactivo") {
+              validationResults.push({
+                device: dev,
+                valid: false,
+                resultado: "denegado_inactivo",
+                motivo: "Inactivo / vencido",
+                desc: "Este dispositivo ha superado los 90 días sin escaneo.",
+                tipo_movimiento: null,
+              });
+            } else if (daysSince > 90) {
+              dev.status = "inactivo";
+              toUpdate.push(dev);
+              validationResults.push({
+                device: dev,
+                valid: false,
+                resultado: "denegado_inactivo",
+                motivo: "Inactivo / vencido",
+                desc: "Este dispositivo ha superado los 90 días sin escaneo.",
+                tipo_movimiento: null,
+              });
+              DebugConsole.log(`Auto-desactivando ${dev.id} (>${daysSince}d)`, "warn");
+            } else {
+              anyValid = true;
+              dev.ultimo_escaneo = now.toISOString();
+              toUpdate.push(dev);
+              validationResults.push({
+                device: dev,
+                valid: true,
+                resultado: "valido",
+                motivo: null,
+                tipo_movimiento: null,
+              });
+            }
+          } else {
+            // Dispositivos (no drivers): aplicar lógica de Entrada/Salida
+            const ubicacion = dev.ubicacion || "afuera";
+            const lastMove = dev.ultimo_movimiento ? new Date(dev.ultimo_movimiento) : new Date(dev.timestamp);
+            const hoursSince = (now - lastMove) / (1000 * 60 * 60);
+
+            // Auto-reset individual a 12 horas
+            const ubicacionEfectiva = ubicacion === "adentro" && hoursSince > 12 ? "afuera" : ubicacion;
+
+            DebugConsole.log(
+              `Device ${dev.id}: ubicacion=${ubicacion}, horas=${hoursSince.toFixed(1)}, efectiva=${ubicacionEfectiva}, modo=${this.mode}`,
+              "info"
+            );
+
+            let valid = false;
+            let resultado = null;
+            let motivo = null;
+            let desc = null;
+            let tipo_movimiento = null;
+
+            if (this.mode === "entrada") {
+              if (ubicacionEfectiva === "afuera") {
+                valid = true;
+                resultado = "valido";
+                tipo_movimiento = "ingreso";
+                dev.ubicacion = "adentro";
+                dev.ultimo_movimiento = now.toISOString();
+              } else {
+                valid = false;
+                resultado = "denegado_compartido";
+                motivo = "Posible QR compartido";
+                desc = "El dispositivo ya está adentro";
+              }
+            } else if (this.mode === "salida") {
+              if (ubicacionEfectiva === "adentro") {
+                valid = true;
+                resultado = "valido";
+                tipo_movimiento = "salida";
+                dev.ubicacion = "afuera";
+                dev.ultimo_movimiento = now.toISOString();
+              } else {
+                valid = false;
+                resultado = "denegado_sin_ingreso";
+                motivo = "Sin ingreso previo";
+                desc = "El dispositivo está afuera";
+              }
+            }
+
+            // Actualizar ultimo_escaneo para la regla de 90 días
+            dev.ultimo_escaneo = now.toISOString();
+
+            if (valid) {
+              anyValid = true;
+            }
+
+            toUpdate.push(dev);
+            validationResults.push({
+              device: dev,
+              valid,
+              resultado,
+              motivo,
+              desc,
+              tipo_movimiento,
+            });
+          }
+        }
+
+        // Actualizar devices_master si hay cambios
+        if (toUpdate.length > 0) {
+          try {
+            this.devicesBucket = await this.gridClient.mutateBucket(
+              "devices_master",
+              async (bucket) => {
+                for (const dev of toUpdate) {
+                  const idx = bucket.records.findIndex((d) => d.id === dev.id);
+                  if (idx >= 0) {
+                    bucket.records[idx] = dev;
+                  }
+                }
+                return bucket;
+              }
+            );
+            DebugConsole.log(`devices_master actualizado`, "info");
+          } catch (e) {
+            DebugConsole.log(`Error actualizando devices: ${e.message}`, "error");
+          }
+        }
+
+        // Guardar en scan_master (válidos y denegados por compartido/sin ingreso)
+        try {
+          await this.gridClient.mutateBucket(
+            "scan_master",
+            async (bucket) => {
+              for (const vr of validationResults) {
+                const recordToAdd = {
+                  scan_id: `scan_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                  timestamp: now.toISOString(),
+                  device_ids: type === "device" ? [vr.device.id] : [],
+                  driver_id: type === "driver" ? driverId : null,
+                  owner_key: vr.device.owner_key,
+                  validado_por: this.currentUser?.name || "Desconocido",
+                  email_validador: this.currentUser?.email || "",
+                  resultado: vr.resultado,
+                  tipo_movimiento: vr.tipo_movimiento,
+                  modo: vr.tipo_movimiento ? this.mode : null,
+                };
+
+                // Escribir válidos y denegados por entrada/salida
+                if (vr.valid || vr.resultado === "denegado_compartido" || vr.resultado === "denegado_sin_ingreso") {
+                  bucket.records.push(recordToAdd);
+                }
+              }
+              return bucket;
+            }
+          );
+          DebugConsole.log(`scan_master actualizado`, "info");
+        } catch (e) {
+          DebugConsole.log(`Error scan_master: ${e.message}`, "error");
+        }
+
+        // Mostrar resultado (mostrar el primero)
+        if (validationResults.length > 0) {
+          const firstResult = validationResults[0];
+          if (firstResult.valid) {
+            const validDevices = validationResults
+              .filter((vr) => vr.valid)
+              .map((vr) => ({ ...vr.device, tipo_movimiento: vr.tipo_movimiento }));
+            this.showValid(validDevices);
+          } else {
+            this.showDenied(firstResult.motivo, firstResult.desc, firstResult.resultado);
+          }
+        } else {
+          this.showDenied("No registrado", "No existe un dispositivo registrado con este código.");
+        }
+      }
+
+      showValid(devices) {
+        const list = document.getElementById("devices-list");
+        list.innerHTML = devices
+          .map((d) => {
+            const fotoBtn = d.foto_doc_id
+              ? `<button class="btn-view-photo" onclick="app.viewPhoto('${d.foto_doc_id}', '${d.id}')">Ver foto</button>`
+              : "";
+            const movementBadge = d.tipo_movimiento
+              ? `<div class="row"><span class="k">Movimiento</span><span class="status-badge" style="background: var(--c-green); color: var(--bg);">${d.tipo_movimiento.toUpperCase()}</span></div>`
+              : "";
+            return `
+              <div class="device-card">
+                <div class="row">
+                  <span class="k">ID</span>
+                  <span class="v">${d.id.slice(0, 20)}...</span>
+                </div>
+                <div class="row">
+                  <span class="k">Descripción</span>
+                  <span class="v">${d.descripcion || "-"}</span>
+                </div>
+                ${d.imei ? `<div class="row"><span class="k">IMEI</span><span class="v">${d.imei}</span></div>` : ""}
+                <div class="row">
+                  <span class="k">Estado</span>
+                  <span class="status-badge">Activo</span>
+                </div>
+                ${movementBadge}
+                ${fotoBtn}
+              </div>
+            `;
+          })
+          .join("");
+
+        document.getElementById("stage-scanner").classList.remove("active");
+        document.getElementById("stage-valid").classList.add("active");
+        document.getElementById("stage-denied").classList.remove("active");
+      }
+
+      showDenied(motivo, desc, resultado) {
+        const modeDisplay = this.mode === "entrada" ? "ENTRADA" : "SALIDA";
+        const reasonHtml = resultado === "denegado_compartido" || resultado === "denegado_sin_ingreso"
+          ? `<div style="margin-bottom: 16px; padding: 12px; background: rgba(255, 92, 108, 0.1); border-radius: var(--r-sm);"><strong style="color: var(--c-red);">${modeDisplay}</strong></div><strong>${motivo}</strong><br/><span style="font-size: 13px; color: var(--text-sub);">${desc}</span>`
+          : `<strong>${motivo}</strong><br/><span style="font-size: 13px; color: var(--text-sub);">${desc}</span>`;
+        document.getElementById("deny-reason").innerHTML = reasonHtml;
+        document.getElementById("stage-scanner").classList.remove("active");
+        document.getElementById("stage-valid").classList.remove("active");
+        document.getElementById("stage-denied").classList.add("active");
+      }
+
+      backToScanner() {
+        document.getElementById("stage-scanner").classList.add("active");
+        document.getElementById("stage-valid").classList.remove("active");
+        document.getElementById("stage-denied").classList.remove("active");
+
+        this.applyScanMode();
+      }
+
+      viewPhoto(docId, deviceId) {
+        const url = "https://grid.adminml.com/d/" + docId + "?dl=1";
+        document.getElementById("modal-photo-img").src = url;
+        document.getElementById("modal-photo").classList.add("active");
+        DebugConsole.log(`Abriendo foto: ${deviceId}`, "info");
+      }
+    }
+
+    // Constantes de logos
+    const NAVBAR_LOGO_DOC_ID = "01KYGCGRZHJT8JP7Q1WRZKRX6C";
+
+    // Iniciar app
+    const app = new ValidacionApp();
+  </script>
+</body>
+</html>

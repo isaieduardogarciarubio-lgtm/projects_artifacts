@@ -1,0 +1,1719 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Consolidado de Auditoría — Grid</title>
+  <script src="/d/_libs/plotly.min.js"></script>
+  <!-- Skeleton CSS: normalización base + grid responsivo -->
+  <link rel="stylesheet" href="../css/lib/skeleton.min.css" />
+  <style>
+    /* ═══════════════════════════════════════════
+       NOCTURNE — Grid Design System
+    ═══════════════════════════════════════════ */
+    :root {
+      --bg:          #090C0E;
+      --surface:     #11161A;
+      --surface-2:   #161D22;
+      --border:      #1F2830;
+      --border-soft: #161C21;
+      --accent:        #FFD100;
+      --accent-strong: #E6BC00;
+      --accent-dim:    #6E5E00;
+      --accent-glow:   rgba(255,209,0,.14);
+      --on-accent:     #1A1A1A;
+      --text:     #F4F6F8;
+      --text-sub: #AAB4BC;
+      --text-mut: #6B757D;
+      --c-green:  #00D689;
+      --c-blue:   #5A95FF;
+      --c-orange: #FF9E45;
+      --c-red:    #FF5C6C;
+      --r-sm: 8px; --r-md: 12px; --r-lg: 18px; --r-pill: 999px;
+      --shadow: 0 18px 40px -20px rgba(0,0,0,.7);
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      background-image:
+        radial-gradient(1000px 640px at 100% -8%, rgba(255,209,0,.09), transparent 55%),
+        radial-gradient(760px 520px at -12% 108%, rgba(255,209,0,.04), transparent 60%);
+      background-attachment: fixed;
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .wrap {
+      max-width: 900px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding: 32px 16px 56px;
+    }
+
+    /* ── HEADER (barra de título sticky, ancho completo) ── */
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 20px 40px;
+      background: linear-gradient(180deg, rgba(9,12,14,.85), rgba(9,12,14,0));
+      backdrop-filter: blur(10px);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+    }
+    .header-icon {
+      width: 36px; height: 36px;
+      background: var(--surface);
+      border-radius: var(--r-sm);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+    .header-icon svg { display: block; }
+    .header-icon img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+    .header h1 { margin: 0; font-size: 18px; font-weight: 800; line-height: 1.2; color: var(--text); letter-spacing: -.02em; }
+
+    /* Menú principal (Cargar / Análisis) dentro de la barra de título */
+    .header-menubar {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--r-pill);
+      padding: 5px;
+    }
+    .tab-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      color: var(--text-sub); text-decoration: none;
+      font-size: 14px; font-weight: 600; font-family: var(--font);
+      padding: 9px 16px; border-radius: var(--r-pill);
+      cursor: pointer; transition: all .16s; background: 0; border: none;
+    }
+    .tab-link:hover:not(.active) { color: var(--text); background: rgba(255,255,255,.04); }
+    .tab-link.active { color: var(--text); background: var(--surface); }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+      justify-content: flex-end;
+    }
+
+    /* ── TABS (log-tabs secundarios, dentro del contenido) ── */
+    .tabs {
+      display: flex; gap: 4px;
+      background: var(--surface-2);
+      border-radius: var(--r-pill);
+      padding: 5px;
+      border: 1px solid var(--border);
+    }
+    .tab {
+      flex: 1; padding: 9px 8px;
+      border: none; border-radius: var(--r-pill);
+      background: transparent;
+      font-size: 13px; font-weight: 600; color: var(--text-sub);
+      cursor: pointer; transition: all .16s; text-align: center;
+      font-family: var(--font);
+      display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+    }
+    .tab.active   { background: var(--surface); color: var(--text); }
+    .tab:hover:not(.active) { color: var(--text); background: rgba(255,255,255,.04); }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--surface);
+      border-radius: var(--r-lg);
+      padding: 24px;
+      border: 1px solid var(--border);
+      max-width: 100%;
+      box-sizing: border-box;
+      box-shadow: var(--shadow);
+    }
+    .card-title {
+      font-size: 15px; font-weight: 700; color: var(--text);
+      margin: 0 0 20px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .card-title svg { color: var(--accent); flex-shrink: 0; }
+
+    /* ── FORM ── */
+    label {
+      display: block; font-size: 11px; font-weight: 700;
+      color: var(--text-mut); text-transform: uppercase; letter-spacing: .06em;
+      margin-bottom: 6px; margin-top: 18px;
+    }
+    label:first-child { margin-top: 0; }
+
+    input[type="text"], textarea {
+      width: 100%; padding: 10px 14px;
+      border: 1px solid var(--border); border-radius: var(--r-sm);
+      font-size: 14px; font-family: var(--font); color: var(--text);
+      background: var(--surface-2);
+      transition: border-color .16s, box-shadow .16s; outline: none;
+    }
+    input[type="text"]:focus, textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+    input[type="text"]::placeholder, textarea::placeholder { color: var(--text-mut); }
+    textarea { min-height: 72px; resize: vertical; }
+
+    /* ── FILE DROP ZONE ── */
+    .drop-zone {
+      position: relative; border: 2px dashed var(--border);
+      border-radius: var(--r-md); padding: 30px 16px;
+      text-align: center; cursor: pointer;
+      transition: border-color .16s, background .16s;
+      background: var(--surface-2);
+    }
+    .drop-zone:hover, .drop-zone.dragover {
+      border-color: var(--accent); background: rgba(255,209,0,.04);
+    }
+    .drop-zone input[type="file"] {
+      position: absolute; inset: 0; opacity: 0;
+      cursor: pointer; width: 100%; height: 100%;
+    }
+    .drop-icon    { display: flex; justify-content: center; margin-bottom: 10px; color: var(--accent); }
+    .drop-label   { font-size: 14px; font-weight: 600; color: var(--accent); }
+    .drop-hint    { font-size: 12px; color: var(--text-mut); margin-top: 4px; }
+    .drop-filename {
+      margin-top: 12px; font-size: 13px; color: var(--text);
+      font-weight: 600; background: rgba(255,209,0,.1);
+      border-radius: var(--r-sm); padding: 6px 12px; display: none;
+      border: 1px solid var(--accent-dim);
+    }
+
+    /* ── BUTTONS ── */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: 8px; border: 1px solid transparent; border-radius: var(--r-pill);
+      padding: 11px 22px; font-size: 14px; font-weight: 600;
+      cursor: pointer; transition: all .16s; font-family: var(--font);
+    }
+    .btn-primary {
+      background: linear-gradient(180deg, var(--accent), var(--accent-strong));
+      color: var(--on-accent); width: 100%; margin-top: 20px;
+      box-shadow: 0 8px 22px -12px rgba(255,209,0,.4), inset 0 1px 0 rgba(255,255,255,.3);
+    }
+    .btn-primary:hover:not(:disabled) { filter: brightness(1.05); transform: translateY(-1px); }
+    .btn-primary:disabled { opacity: .45; cursor: not-allowed; transform: none; filter: none; }
+
+    .btn-secondary {
+      background: var(--surface-2); border: 1px solid var(--border);
+      color: var(--text-sub); font-size: 13px; padding: 8px 14px;
+    }
+    .btn-secondary:hover { border-color: var(--accent-dim); color: var(--text); }
+
+    .btn-icon {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all .16s;
+      padding: 0;
+      flex-shrink: 0;
+    }
+    .btn-icon:hover {
+      border-color: var(--accent-dim);
+      color: var(--accent);
+    }
+    .btn-icon svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    /* ── ALERTS ── */
+    .alert {
+      gap: 10px; padding: 14px 16px;
+      border-radius: var(--r-md); font-size: 14px; border: 1px solid;
+      margin-top: 16px; line-height: 1.5; display: none;
+    }
+    .alert.info    { border-color: rgba(90,149,255,.35);  background: rgba(90,149,255,.08);  color: #92b8ff; }
+    .alert.success { border-color: rgba(0,214,137,.35);   background: rgba(0,214,137,.08);   color: #7FE9C2; }
+    .alert.error   { border-color: rgba(255,92,108,.35);  background: rgba(255,92,108,.08);  color: #FFB3BB; }
+    .alert.warning { border-color: rgba(255,209,0,.35);   background: rgba(255,209,0,.08);   color: #FFE680; }
+
+    /* ── PROGRESS ── */
+    .upload-progress {
+      margin-top: var(--spacing-lg);
+      display: none;
+    }
+    .upload-progress.active {
+      display: block;
+    }
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: var(--surface-2);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 12px;
+      border: 1px solid var(--border);
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent-strong));
+      width: 0%;
+      transition: width .2s;
+    }
+    .progress-text {
+      font-size: 12px;
+      color: var(--text-mut);
+      text-align: center;
+    }
+
+    /* ── ANALYSIS PANELS ── */
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .kpi-card {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      padding: 16px;
+      text-align: center;
+    }
+    .kpi-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 6px;
+    }
+    .kpi-label {
+      font-size: 11px;
+      color: var(--text-mut);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .chart-container {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      padding: 16px;
+      height: clamp(240px, 34vh, 400px);
+      box-sizing: border-box;
+      overflow: hidden;
+    }
+    .chart-container .js-plotly-plot,
+    .chart-container .plot-container {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* ── TABLE ── */
+    .table-wrapper {
+      overflow-x: auto;
+      margin-top: 16px;
+    }
+    .table-controls {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .search-input {
+      flex: 1;
+      min-width: 200px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      padding: 10px 14px;
+      font-size: 14px;
+      color: var(--text);
+      font-family: var(--font);
+    }
+    .search-input::placeholder {
+      color: var(--text-mut);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    thead {
+      background: transparent;
+      border-bottom: 1px solid var(--border);
+    }
+    th {
+      text-align: left;
+      padding: 12px;
+      color: var(--text-mut);
+      font-weight: 700;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+    td {
+      padding: 12px;
+      border-bottom: 1px solid var(--border-soft);
+      color: var(--text);
+    }
+    tr:hover {
+      background: rgba(255, 255, 255, .02);
+    }
+    .photo-thumbnail {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--r-sm);
+      object-fit: cover;
+      cursor: pointer;
+      border: 1px solid var(--border);
+    }
+    .status-good {
+      color: var(--c-green);
+      font-weight: 600;
+    }
+    .status-critical {
+      color: var(--c-red);
+      font-weight: 600;
+    }
+
+    /* ── ACCIONES EN TABLA ── */
+    .btn-action {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 6px;
+      border-radius: var(--r-sm);
+      transition: background .15s, color .15s;
+      color: var(--text-sub);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .btn-action svg {
+      width: 16px; height: 16px;
+      display: block;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+    }
+    .btn-action:hover {
+      background: rgba(255, 209, 0, .12);
+      color: var(--accent);
+    }
+    .btn-view:hover {
+      background: rgba(90, 149, 255, .14);
+      color: var(--c-blue);
+    }
+    .btn-delete:hover {
+      background: rgba(255, 92, 108, .12);
+      color: var(--c-red);
+    }
+
+    /* Botón de actualizar girando mientras carga */
+    .btn-icon.spinning svg { animation: spin .7s linear infinite; }
+
+    /* ── EMPTY STATE ── */
+    .empty-state {
+      text-align: center;
+      padding: 36px 16px;
+      color: var(--text-mut);
+      font-size: 14px;
+    }
+
+    /* ── PHOTO MODAL ── */
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, .8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      padding: 16px;
+      display: none;
+    }
+    .modal.active {
+      display: flex;
+    }
+    .modal-content {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: 24px;
+      max-width: 600px;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: var(--shadow);
+    }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .modal-header h3 {
+      font-size: 15px;
+      font-weight: 700;
+      margin: 0;
+    }
+    .modal-close {
+      background: none;
+      border: none;
+      color: var(--text);
+      cursor: pointer;
+      font-size: 24px;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all .16s;
+    }
+    .modal-close:hover {
+      color: var(--accent);
+    }
+
+    /* ── UTIL ── */
+    .divider { height: 1px; background: var(--border-soft); margin: 20px 0; }
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,.15); border-top-color: var(--accent);
+      border-radius: 50%; animation: spin .7s linear infinite; flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+    @media (max-width: 640px) {
+      .wrap { width: 100%; padding: 24px 16px 48px; }
+      .header { padding: 16px 20px; flex-direction: column; gap: 16px; }
+      .header-menubar { order: 2; width: 100%; }
+      .header-menubar .tab-link { flex: 1; justify-content: center; }
+      .header-right { order: 3; width: 100%; justify-content: center; }
+      .tabs { border-radius: var(--r-lg); }
+      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+      .charts-grid { grid-template-columns: 1fr; }
+      .chart-container { height: clamp(220px, 46vh, 420px); }
+    }
+
+    #debug-console-panel { max-height: 0; }
+    #debug-console-panel.open { max-height: 320px; }
+  </style>
+</head>
+
+<body>
+
+<!-- HEADER (barra de título) -->
+<header class="header">
+  <div class="brand">
+    <div class="header-icon">
+      <img id="header-logo" alt="Logo" />
+    </div>
+    <h1>Consolidado de Auditoría</h1>
+  </div>
+
+  <div class="header-right">
+    <button class="btn-icon" id="btn-refresh" title="Actualizar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M23 4v6h-6"/>
+        <path d="M1 20v-6h6"/>
+        <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+      </svg>
+    </button>
+    <button class="btn-icon" id="btn-download" title="Descargar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+        <polyline points="7 10 12 15 17 10"/>
+        <line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+    </button>
+    <button class="btn-icon" id="btn-debug-console" title="Consola de errores" style="position: relative;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="4 17 10 11 4 5"/>
+        <line x1="12" y1="19" x2="20" y2="19"/>
+      </svg>
+      <span id="debug-console-badge" style="
+        display: none; position: absolute; top: -2px; right: -2px;
+        width: 16px; height: 16px; border-radius: 50%; background: var(--c-red);
+        color: #fff; font-size: 10px; font-weight: 700;
+        align-items: center; justify-content: center;
+      "></span>
+    </button>
+  </div>
+</header>
+
+<!-- Panel de consola de depuración (Grid bloquea DevTools en su iframe) -->
+<div id="debug-console-panel" style="
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 500;
+  background: var(--surface); border-top: 1px solid var(--border);
+  box-shadow: 0 -18px 40px -20px rgba(0,0,0,.7);
+  overflow: hidden; transition: max-height .2s ease;
+">
+  <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border-bottom: 1px solid var(--border);">
+    <span style="font-size: 13px; font-weight: 700;">Consola de errores</span>
+    <div style="display: flex; gap: 8px;">
+      <button class="btn-secondary" style="font-size: 12px; padding: 6px 12px;" onclick="DebugConsole.copyToClipboard()">Copiar</button>
+      <button class="btn-secondary" style="font-size: 12px; padding: 6px 12px;" onclick="DebugConsole.toggle()">Cerrar</button>
+    </div>
+  </div>
+  <div id="debug-console-body" style="
+    padding: 12px 16px; font-family: monospace; font-size: 12px; line-height: 1.6;
+    max-height: 240px; overflow-y: auto; white-space: pre-wrap; word-break: break-word;
+  "></div>
+</div>
+
+<div class="wrap">
+
+  <!-- TABS de log -->
+  <div class="tabs" id="log-tabs" style="display: none;"></div>
+
+  <!-- ANÁLISIS: única vista — los datos llegan solos desde los State Buckets que alimenta la app de captura, no hace falta cargar nada a mano -->
+  <div id="panel-analysis" class="panel active">
+    <div class="card">
+      <p class="card-title">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        Análisis
+      </p>
+
+      <div id="no-data-message" class="empty-state">
+        <p>Todavía no hay registros sincronizados desde la app de captura.</p>
+      </div>
+
+      <div id="analysis-content" style="display: none;">
+        <!-- KPIs -->
+        <div class="kpi-grid" id="kpi-grid"></div>
+
+        <!-- Charts -->
+        <div class="charts-grid" id="charts-grid"></div>
+
+        <!-- Table -->
+        <div class="table-wrapper">
+          <!-- Date Range Filter -->
+          <div style="display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; align-items: center;">
+            <label style="font-size: 0.85rem; color: var(--text-mut);">Filtrar por fecha:</label>
+            <input type="date" id="date-from" style="padding: 6px 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text);" />
+            <span style="color: var(--text-mut);">hasta</span>
+            <input type="date" id="date-to" style="padding: 6px 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text);" />
+            <button id="btn-clear-filters" class="btn-secondary" style="font-size: 0.85rem; padding: 6px 12px;">Limpiar</button>
+          </div>
+          <div class="table-controls">
+            <input type="text" class="search-input" id="search-input" placeholder="Buscar en registros…" />
+          </div>
+          <table id="records-table">
+            <thead id="table-head"></thead>
+            <tbody id="table-body"></tbody>
+          </table>
+          <!-- Pagination -->
+          <div style="display: flex; gap: 12px; margin-top: 12px; justify-content: center; align-items: center;">
+            <button id="btn-load-more" class="btn-secondary" style="font-size: 0.85rem; padding: 8px 16px; display: none;">Cargar más</button>
+            <span id="pagination-info" style="color: var(--text-mut); font-size: 0.85rem;"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /wrap -->
+
+<!-- Photo Modal -->
+<div class="modal" id="photo-modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Fotos del registro</h3>
+      <button class="modal-close" id="photo-modal-close">&times;</button>
+    </div>
+    <div id="photo-modal-body" style="display: flex; flex-direction: column; gap: 12px;"></div>
+  </div>
+</div>
+
+<script>
+  // ==========================================================================
+  // GridClient
+  //
+  // IMPORTANTE (Biblia Grid V11.4, sección 23): el bucket nombrado
+  // (/api/v1/documents/{id}/states/{name}) es el único con control optimista
+  // real (409 en escrituras concurrentes desactualizadas). El payload va bajo
+  // la clave "state" (no "data"), y la respuesta trae "state" + "updated_at"
+  // en el nivel superior: { state: {...}, updated_at: "iso-timestamp" }.
+  //
+  // NO usar window.GRID.state/states para persistencia durable: la Biblia
+  // documenta explícitamente que ese objeto está atado al docId del propio
+  // contenedor HTML, y "el docId cambia en cada upload" — cada vez que se
+  // sube una nueva versión del dashboard, los datos guardados bajo el docId
+  // anterior quedan inalcanzables. Por eso usamos siempre fetch directo
+  // contra un doc_id estable y explícito (this.docId), nunca window.GRID.
+  // ==========================================================================
+  // ==========================================================================
+  // DebugConsole
+  //
+  // Grid corre el documento en un iframe restringido donde DevTools no
+  // abre — sin esto, no hay forma de ver un error real (ni el usuario ni
+  // nosotros). Muestra un panel en pantalla con cada evento importante y
+  // captura errores/rechazos no atrapados en cualquier parte del código.
+  // ==========================================================================
+  class DebugConsole {
+    static entries = [];
+    static maxEntries = 300;
+
+    static log(message, level = 'info') {
+      const ts = new Date().toISOString().split('T')[1].slice(0, 8);
+      this.entries.push({ ts, level, message: String(message) });
+      if (this.entries.length > this.maxEntries) this.entries.shift();
+      this.render();
+      if (level === 'error') console.error(message);
+      else if (level === 'warn') console.warn(message);
+      else console.log(message);
+    }
+
+    static escapeHtml(s) {
+      const div = document.createElement('div');
+      div.textContent = s;
+      return div.innerHTML;
+    }
+
+    static render() {
+      const el = document.getElementById('debug-console-body');
+      if (!el) return;
+      const colors = { error: '#FF5C6C', warn: '#FFD100', info: '#AAB4BC' };
+      el.innerHTML = this.entries.map(e =>
+        `<div style="color:${colors[e.level] || colors.info};">[${e.ts}] ${this.escapeHtml(e.message)}</div>`
+      ).join('');
+      el.scrollTop = el.scrollHeight;
+      const badge = document.getElementById('debug-console-badge');
+      if (badge) {
+        const errorCount = this.entries.filter(e => e.level === 'error').length;
+        badge.style.display = errorCount > 0 ? 'flex' : 'none';
+        badge.textContent = errorCount > 9 ? '9+' : String(errorCount);
+      }
+    }
+
+    static toggle() {
+      const panel = document.getElementById('debug-console-panel');
+      panel.classList.toggle('open');
+    }
+
+    static copyToClipboard() {
+      const text = this.entries.map(e => `[${e.ts}] [${e.level}] ${e.message}`).join('\n');
+      navigator.clipboard.writeText(text).then(() => {
+        this.log('Log copiado al portapapeles', 'info');
+      }).catch(() => {
+        this.log('No se pudo copiar automáticamente — selecciona el texto manualmente', 'warn');
+      });
+    }
+
+    static setup() {
+      window.addEventListener('error', (e) => {
+        this.log(`Error no capturado: ${e.message} (${e.filename}:${e.lineno})`, 'error');
+      });
+      window.addEventListener('unhandledrejection', (e) => {
+        const reason = e.reason && e.reason.message ? e.reason.message : String(e.reason);
+        this.log(`Promesa rechazada sin capturar: ${reason}`, 'error');
+      });
+      this.log('Consola de depuración iniciada', 'info');
+    }
+  }
+
+  class GridClient {
+    constructor(docId) {
+      this.docId = docId;
+      this.baseUrl = location.origin;
+      this._updatedAtByName = {};
+    }
+
+    async getMe() {
+      try {
+        const res = await fetch(`${this.baseUrl}/api/v1/me`, { credentials: 'include' });
+        if (!res.ok) throw new Error(`${res.status}`);
+        return await res.json();
+      } catch (e) {
+        console.warn('Could not fetch /me:', e);
+        return null;
+      }
+    }
+
+    /**
+     * GET /documents/{id}/download no sirve el binario directo: devuelve
+     * metadata JSON con download_url (o agent_download_url), que hay que
+     * volver a fetchear para obtener el blob real.
+     */
+    async downloadDocumentAsObjectUrl(docId) {
+      try {
+        const metaRes = await fetch(`${this.baseUrl}/api/v1/documents/${docId}/download`, {
+          credentials: 'include',
+        });
+        if (!metaRes.ok) throw new Error(`${metaRes.status}`);
+        const meta = await metaRes.json();
+        const url = meta.download_url || meta.agent_download_url;
+        if (!url) throw new Error('No se encontró download_url en la respuesta');
+
+        const blobRes = await fetch(url, { credentials: 'include' });
+        if (!blobRes.ok) throw new Error(`${blobRes.status}`);
+        const blob = await blobRes.blob();
+        return URL.createObjectURL(blob);
+      } catch (e) {
+        console.warn(`downloadDocumentAsObjectUrl ${docId}:`, e);
+        return null;
+      }
+    }
+
+    /**
+     * Sube un archivo a Grid como documento PÚBLICO y devuelve su doc ID.
+     * Las fotos no caben inline en un State Bucket (~1 MB total), así que
+     * cada foto se guarda como documento aparte y en el registro solo
+     * queda el doc ID (referencia liviana). Público = visible para
+     * cualquier usuario autorizado del dashboard sin depender de ACLs.
+     * (POST /api/v1/documents con FormData, Biblia Grid — visibility.)
+     */
+    async uploadPublicDocument(blob, filename) {
+      const fd = new FormData();
+      fd.append('file', blob, filename);
+      fd.append('title', filename);
+      fd.append('description', 'Foto de auditoría (consolidado)');
+      fd.append('visibility', 'public');
+
+      // Sin timeout, un fetch colgado deja la subida atascada para siempre
+      // sin ningún mensaje visible — con AbortController al menos falla
+      // explícitamente y se puede reportar.
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+      let res;
+      try {
+        res = await fetch(`${this.baseUrl}/api/v1/documents`, {
+          method: 'POST',
+          credentials: 'include',
+          body: fd,
+          signal: controller.signal,
+        });
+      } catch (e) {
+        if (e.name === 'AbortError') throw new Error('Tiempo de espera agotado (30s) subiendo la foto');
+        throw e;
+      } finally {
+        clearTimeout(timeoutId);
+      }
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || err.message || `HTTP ${res.status}`);
+      }
+      const body = await res.json();
+      return body.id || body.doc_id || (body.document && body.document.id) || null;
+    }
+
+    async getStateBucket(name) {
+      try {
+        const res = await fetch(`${this.baseUrl}/api/v1/documents/${this.docId}/states/${name}`, {
+          credentials: 'include',
+        });
+        if (res.status === 404) return null;
+        if (!res.ok) throw new Error(`${res.status}`);
+        const body = await res.json();
+        this._updatedAtByName[name] = body.updated_at || '';
+        return body.state ?? null;
+      } catch (e) {
+        console.error(`getStateBucket ${name}:`, e);
+        if (typeof DebugConsole !== 'undefined') {
+          DebugConsole.log(`getStateBucket ${name}: ${e.message}`, 'error');
+        }
+        return null;
+      }
+    }
+
+    async setStateBucket(name, data) {
+      try {
+        const ifUpdatedAt = this._updatedAtByName[name] || '';
+        const res = await fetch(`${this.baseUrl}/api/v1/documents/${this.docId}/states/${name}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ state: data, if_updated_at: ifUpdatedAt }),
+          credentials: 'include',
+        });
+
+        if (res.status === 409) {
+          const conflictBody = await res.json().catch(() => ({}));
+          if (conflictBody.current_updated_at) {
+            this._updatedAtByName[name] = conflictBody.current_updated_at;
+          }
+          console.warn('Conflict on state bucket update — retrying');
+          return { conflict: true };
+        }
+        if (!res.ok) throw new Error(`${res.status}`);
+        const body = await res.json();
+        this._updatedAtByName[name] = body.updated_at || '';
+        return { ok: true };
+      } catch (e) {
+        console.error(`setStateBucket ${name}:`, e);
+        return null;
+      }
+    }
+  }
+
+  // Íconos SVG (estilo Lucide) para las acciones de la tabla. El path
+  // hereda stroke/fill vía CSS (.btn-action svg), así que solo el path.
+  const SVG_ICONS = {
+    trash: '<svg viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M6 7V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2"/><path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/></svg>',
+    image: '<svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>',
+  };
+
+  // ==========================================================================
+  // AuditDashboard
+  // ==========================================================================
+  class AuditDashboard {
+    constructor() {
+      const params = new URLSearchParams(location.search);
+      this.docId = params.get('data_doc_id') || '01KY8F1NQ0CGK80JNEN1DPNFVF';
+      this.gridClient = new GridClient(this.docId);
+      this.logs = {
+        destino_doca: [],
+        fury: [],
+        contenerizado: [],
+        linehaul: [],
+        inbound_fm: [],
+      };
+      this.currentLog = 'destino_doca';
+      // Filtros y paginación
+      this.dateFrom = null;
+      this.dateTo = null;
+      this.displayedCount = 10;
+      this.init();
+    }
+
+    /**
+     * Lectura pura: no hay carga manual de CSV/ZIP ni contraseña — la app
+     * de captura escribe directo a los State Buckets ({log}_master) y este
+     * dashboard solo los lee y los muestra.
+     */
+    async init() {
+      this.setupEventListeners();
+      this.loadHeaderLogo();
+
+      // Rango de fechas por defecto: mes actual (desde el día 1 hasta hoy)
+      const today = new Date();
+      const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+      this.dateFrom = firstDayOfMonth;
+      document.getElementById('date-from').value = firstDayOfMonth.toISOString().split('T')[0];
+
+      await this.loadAllLogs();
+      const firstWithData = Object.entries(this.logs).find(([, r]) => r.length > 0);
+      if (firstWithData) {
+        this.currentLog = firstWithData[0];
+      }
+      this.render();
+    }
+
+    async loadHeaderLogo() {
+      const logoDocId = '01KTD4Q8GC7Y620F9F9WEXGDE4';
+      const objectUrl = await this.gridClient.downloadDocumentAsObjectUrl(logoDocId);
+      if (objectUrl) {
+        document.getElementById('header-logo').src = objectUrl;
+      }
+    }
+
+    setupEventListeners() {
+      document.getElementById('btn-refresh').addEventListener('click', () => this.refreshLogs());
+      document.getElementById('btn-download').addEventListener('click', () => this.downloadAll());
+      document.getElementById('btn-debug-console').addEventListener('click', () => DebugConsole.toggle());
+      document.getElementById('search-input').addEventListener('input', (e) => this.filterTable(e.target.value));
+      document.getElementById('photo-modal-close').addEventListener('click', () => {
+        document.getElementById('photo-modal').classList.remove('active');
+      });
+
+      document.getElementById('date-from').addEventListener('change', (e) => {
+        this.dateFrom = e.target.value ? new Date(e.target.value) : null;
+        this.displayedCount = 10;
+        this.render();
+      });
+      document.getElementById('date-to').addEventListener('change', (e) => {
+        this.dateTo = e.target.value ? new Date(e.target.value) : null;
+        this.displayedCount = 10;
+        this.render();
+      });
+      document.getElementById('btn-clear-filters').addEventListener('click', () => {
+        this.dateFrom = null;
+        this.dateTo = null;
+        document.getElementById('date-from').value = '';
+        document.getElementById('date-to').value = '';
+        this.displayedCount = 10;
+        this.render();
+      });
+      document.getElementById('btn-load-more').addEventListener('click', () => {
+        this.displayedCount += 10;
+        this.render();
+      });
+    }
+
+    async loadAllLogs() {
+      DebugConsole.log(`Cargando logs desde documento: ${this.docId}`, 'info');
+      for (const logType of Object.keys(this.logs)) {
+        const bucket = `${logType}_master`;
+        const data = await this.gridClient.getStateBucket(bucket);
+        if (data && data.records) {
+          this.logs[logType] = data.records;
+          DebugConsole.log(`${bucket}: ${data.records.length} registro(s)`, 'info');
+        } else {
+          this.logs[logType] = [];
+          DebugConsole.log(`${bucket}: vacío, no publicado, o error (ver arriba)`, 'warn');
+        }
+      }
+      const total = Object.values(this.logs).reduce((sum, r) => sum + r.length, 0);
+      DebugConsole.log(`Total combinado: ${total} registro(s)`, 'info');
+      this.render();
+    }
+
+    /**
+     * Recarga manual desde el botón "Actualizar", con feedback visual: el
+     * ícono gira mientras carga y al terminar se muestra un aviso con el
+     * total de registros (antes la recarga no daba ninguna señal visible).
+     */
+    async refreshLogs() {
+      const btn = document.getElementById('btn-refresh');
+      if (btn.classList.contains('spinning')) return; // evitar recargas dobles
+      btn.classList.add('spinning');
+      btn.disabled = true;
+      try {
+        await this.loadAllLogs();
+        const total = Object.values(this.logs).reduce((sum, r) => sum + r.length, 0);
+        this.showNotification(`Actualizado · ${total} registro${total === 1 ? '' : 's'}`, 'success');
+      } catch (e) {
+        this.showNotification('No se pudo actualizar', 'error');
+      } finally {
+        btn.classList.remove('spinning');
+        btn.disabled = false;
+      }
+    }
+
+    render() {
+      this.renderTabs();
+      this.renderAnalysis();
+    }
+
+    renderTabs() {
+      const container = document.getElementById('log-tabs');
+      const hasAny = Object.values(this.logs).some(r => r.length > 0);
+
+      if (!hasAny) {
+        container.style.display = 'none';
+        return;
+      }
+
+      container.style.display = 'flex';
+      container.innerHTML = '';
+
+      for (const [logType, records] of Object.entries(this.logs)) {
+        if (records.length === 0) continue;
+
+        const tab = document.createElement('button');
+        tab.className = `tab ${logType === this.currentLog ? 'active' : ''}`;
+        tab.textContent = this.getLogTitle(logType);
+        tab.addEventListener('click', () => {
+          this.currentLog = logType;
+          this.displayedCount = 10;
+          this.render();
+        });
+        container.appendChild(tab);
+      }
+    }
+
+    renderAnalysis() {
+      const allRecords = this.logs[this.currentLog];
+
+      if (!allRecords || allRecords.length === 0) {
+        document.getElementById('no-data-message').style.display = 'block';
+        document.getElementById('analysis-content').style.display = 'none';
+        return;
+      }
+
+      const filteredRecords = this.getFilteredRecords();
+
+      if (filteredRecords.length === 0) {
+        document.getElementById('no-data-message').style.display = 'block';
+        document.getElementById('analysis-content').style.display = 'none';
+        return;
+      }
+
+      document.getElementById('no-data-message').style.display = 'none';
+      document.getElementById('analysis-content').style.display = 'block';
+
+      // KPIs y gráficas usan todos los registros filtrados por fecha (no
+      // paginados); la tabla sí pagina, para no renderizar cientos de filas.
+      this.renderKpis(filteredRecords);
+
+      const displayedRecords = filteredRecords.slice(0, this.displayedCount);
+      this.renderTable(displayedRecords);
+
+      const btnLoadMore = document.getElementById('btn-load-more');
+      const paginationInfo = document.getElementById('pagination-info');
+      if (filteredRecords.length > this.displayedCount) {
+        btnLoadMore.style.display = 'inline-block';
+        paginationInfo.textContent = `Mostrando ${displayedRecords.length} de ${filteredRecords.length}`;
+      } else {
+        btnLoadMore.style.display = 'none';
+        paginationInfo.textContent = `Total: ${filteredRecords.length}`;
+      }
+
+      this.renderCharts(filteredRecords);
+    }
+
+    /**
+     * Registros del log actual filtrados por rango de fecha (this.dateFrom/
+     * dateTo) y ordenados por más reciente primero. KPIs/gráficas/búsqueda
+     * usan esta lista completa; solo la tabla pagina sobre ella.
+     */
+    getFilteredRecords() {
+      let records = this.logs[this.currentLog] || [];
+
+      if (this.dateFrom || this.dateTo) {
+        records = records.filter(r => {
+          const recDate = r.ts ? new Date(r.ts) : null;
+          if (!recDate) return true;
+          if (this.dateFrom && recDate < this.dateFrom) return false;
+          if (this.dateTo) {
+            const dateToEndOfDay = new Date(this.dateTo);
+            dateToEndOfDay.setHours(23, 59, 59, 999);
+            if (recDate > dateToEndOfDay) return false;
+          }
+          return true;
+        });
+      }
+
+      return records.slice().sort((a, b) => {
+        const aDate = a.ts ? new Date(a.ts).getTime() : 0;
+        const bDate = b.ts ? new Date(b.ts).getTime() : 0;
+        return bDate - aDate;
+      });
+    }
+
+    renderKpis(records) {
+      const container = document.getElementById('kpi-grid');
+      container.innerHTML = '';
+
+      const total = records.length;
+      let good = 0, bad = 0;
+
+      if (this.currentLog === 'destino_doca') {
+        good = records.filter(r => r.resultado === 'Sin incidencia').length;
+        bad = records.filter(r => r.resultado === 'Erroneo').length;
+
+        this.addKpiCard(container, total.toString(), 'Total');
+        this.addKpiCard(container, good.toString(), 'Sin incidencia');
+        this.addKpiCard(container, bad.toString(), 'Erroneo');
+      } else if (this.currentLog === 'fury') {
+        const situations = new Set(records.map(r => r.situacion));
+        this.addKpiCard(container, total.toString(), 'Total');
+        situations.forEach(s => {
+          const count = records.filter(r => r.situacion === s).length;
+          this.addKpiCard(container, count.toString(), s);
+        });
+      } else if (this.currentLog === 'contenerizado') {
+        const situations = new Set(records.map(r => r.situacion));
+        this.addKpiCard(container, total.toString(), 'Total');
+        situations.forEach(s => {
+          const count = records.filter(r => r.situacion === s).length;
+          this.addKpiCard(container, count.toString(), s);
+        });
+      } else if (this.currentLog === 'linehaul') {
+        const areas = new Set(records.map(r => r.area));
+        this.addKpiCard(container, total.toString(), 'Total');
+        areas.forEach(a => {
+          const count = records.filter(r => r.area === a).length;
+          this.addKpiCard(container, count.toString(), a);
+        });
+      } else if (this.currentLog === 'inbound_fm') {
+        const hallazgos = new Set(records.map(r => r.hallazgo));
+        this.addKpiCard(container, total.toString(), 'Total');
+        hallazgos.forEach(h => {
+          const count = records.filter(r => r.hallazgo === h).length;
+          this.addKpiCard(container, count.toString(), h);
+        });
+      }
+    }
+
+    addKpiCard(container, value, label) {
+      const card = document.createElement('div');
+      card.className = 'kpi-card';
+      card.innerHTML = `<div class="kpi-value">${value}</div><div class="kpi-label">${label}</div>`;
+      container.appendChild(card);
+    }
+
+    countByField(records, field) {
+      const counts = {};
+      records.forEach(r => {
+        const key = (r[field] || '').toString().trim() || '(sin dato)';
+        counts[key] = (counts[key] || 0) + 1;
+      });
+      return counts;
+    }
+
+    renderCharts(records) {
+      const container = document.getElementById('charts-grid');
+
+      if (typeof Plotly === 'undefined') {
+        if (this._chartsRafId) cancelAnimationFrame(this._chartsRafId);
+        container.innerHTML = '';
+        const warn = document.createElement('div');
+        warn.className = 'empty-state';
+        warn.textContent = 'Plotly no está disponible en este entorno.';
+        container.appendChild(warn);
+        return;
+      }
+
+      // render() puede dispararse más de una vez seguida (p. ej. el usuario
+      // hace clic en "Análisis" mientras la carga inicial todavía está en
+      // curso). Si cada llamada limpiara el contenedor de forma síncrona
+      // pero dibujara con Plotly de forma diferida (rAF), varios dibujos
+      // pendientes terminarían ejecutándose en el mismo frame sobre el
+      // contenedor ya vacío, apilando gráficas duplicadas. Por eso
+      // cancelamos cualquier dibujo pendiente y limpiamos justo antes de
+      // dibujar, dentro del mismo callback — solo el último render gana.
+      if (this._chartsRafId) {
+        cancelAnimationFrame(this._chartsRafId);
+      }
+
+      // El panel puede acabar de volverse visible (cambio de pestaña) o el
+      // grid CSS (auto-fit) puede no haber terminado de calcular el ancho
+      // final de columna todavía. Si Plotly dibuja en ese instante, mide un
+      // ancho incorrecto y el gráfico queda descuadrado/recortado sin
+      // autocorregirse después. Esperar un frame garantiza que el layout ya
+      // esté asentado antes de que Plotly lea las dimensiones reales.
+      this._chartsRafId = requestAnimationFrame(() => {
+        this._chartsRafId = null;
+        container.innerHTML = '';
+
+        let builders = [];
+        if (this.currentLog === 'destino_doca') {
+          builders = [
+            () => this.buildResultadoChart(records),
+            () => this.buildDestinoChart(records),
+          ];
+        } else if (this.currentLog === 'fury' || this.currentLog === 'contenerizado') {
+          builders = [() => this.buildSituacionChart(records)];
+        } else if (this.currentLog === 'linehaul') {
+          builders = [() => this.buildAreaChart(records)];
+        } else if (this.currentLog === 'inbound_fm') {
+          builders = [() => this.buildHallazgoChart(records)];
+        }
+
+        // Fase 1: crear y anexar TODOS los divs primero. Con CSS Grid
+        // (auto-fit), el número de columnas depende de cuántos items hay
+        // en el momento de medir: si se dibuja el primer gráfico antes de
+        // que exista el segundo div, el grid colapsa a 1 sola columna a
+        // ancho completo, Plotly mide ese ancho incorrecto, y cuando el
+        // grid se reacomoda a 2 columnas al llegar el segundo div, el SVG
+        // ya dibujado no se vuelve a medir solo — queda descuadrado y
+        // recortado por el overflow:hidden del contenedor.
+        const specs = builders.map(build => {
+          const div = document.createElement('div');
+          div.className = 'chart-container';
+          container.appendChild(div);
+          return { div, ...build() };
+        });
+
+        // Fase 2: con el grid ya en su layout final, dibujar cada gráfica.
+        specs.forEach(({ div, data, layout }) => {
+          Plotly.newPlot(div, data, layout, { responsive: true, displayModeBar: false });
+        });
+      });
+    }
+
+    buildResultadoChart(records) {
+      const counts = this.countByField(records, 'resultado');
+
+      const data = [{
+        labels: Object.keys(counts),
+        values: Object.values(counts),
+        type: 'pie',
+        marker: { colors: ['#FFD100', '#4A4A4A'] },
+      }];
+
+      const layout = {
+        title: 'Distribución de Resultados',
+        plot_bgcolor: 'transparent',
+        paper_bgcolor: 'transparent',
+        font: { color: '#F4F6F8', size: 11 },
+        showlegend: true,
+        legend: { orientation: 'h', x: 0.5, xanchor: 'center', y: -0.15 },
+        margin: { l: 20, r: 20, t: 40, b: 20 },
+      };
+
+      return { data, layout };
+    }
+
+    buildSituacionChart(records) {
+      const counts = this.countByField(records, 'situacion');
+
+      const data = [{
+        x: Object.keys(counts),
+        y: Object.values(counts),
+        type: 'bar',
+        marker: { color: '#FFD100' },
+      }];
+
+      const layout = {
+        title: 'Distribución de Situaciones',
+        xaxis: { title: 'Situación' },
+        yaxis: { title: 'Cantidad' },
+        plot_bgcolor: 'transparent',
+        paper_bgcolor: 'transparent',
+        font: { color: '#F4F6F8', size: 11 },
+        margin: { l: 50, r: 30, t: 40, b: 40 },
+      };
+
+      return { data, layout };
+    }
+
+    buildDestinoChart(records) {
+      const counts = this.countByField(records, 'destino');
+
+      const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 8);
+
+      const data = [{
+        x: sorted.map(([k]) => k),
+        y: sorted.map(([, v]) => v),
+        type: 'bar',
+        marker: { color: '#FFD100' },
+      }];
+
+      const layout = {
+        title: 'Top Destinos',
+        xaxis: { title: 'Destino' },
+        yaxis: { title: 'Cantidad' },
+        plot_bgcolor: 'transparent',
+        paper_bgcolor: 'transparent',
+        font: { color: '#F4F6F8', size: 11 },
+        margin: { l: 50, r: 30, t: 40, b: 40 },
+      };
+
+      return { data, layout };
+    }
+
+    buildAreaChart(records) {
+      const counts = this.countByField(records, 'area');
+
+      const data = [{
+        labels: Object.keys(counts),
+        values: Object.values(counts),
+        type: 'pie',
+        marker: { colors: ['#FFD100', '#8A7300', '#4A4A4A'] },
+      }];
+
+      const layout = {
+        title: 'Distribución por Área',
+        plot_bgcolor: 'transparent',
+        paper_bgcolor: 'transparent',
+        font: { color: '#F4F6F8', size: 11 },
+        showlegend: true,
+        legend: { orientation: 'h', x: 0.5, xanchor: 'center', y: -0.15 },
+        margin: { l: 20, r: 20, t: 40, b: 20 },
+      };
+
+      return { data, layout };
+    }
+
+    buildHallazgoChart(records) {
+      const counts = this.countByField(records, 'hallazgo');
+
+      const data = [{
+        x: Object.keys(counts),
+        y: Object.values(counts),
+        type: 'bar',
+        marker: { color: '#FFD100' },
+      }];
+
+      const layout = {
+        title: 'Distribución de Hallazgos',
+        xaxis: { title: 'Hallazgo' },
+        yaxis: { title: 'Cantidad' },
+        plot_bgcolor: 'transparent',
+        paper_bgcolor: 'transparent',
+        font: { color: '#F4F6F8', size: 11 },
+        margin: { l: 50, r: 30, t: 40, b: 40 },
+      };
+
+      return { data, layout };
+    }
+
+    renderTable(records) {
+      const thead = document.getElementById('table-head');
+      const tbody = document.getElementById('table-body');
+      thead.innerHTML = '';
+      tbody.innerHTML = '';
+
+      const config = FORMS_CONFIG[this.currentLog];
+      if (!config) return;
+
+      const isPhotoField = (fieldName) =>
+        (config.fields || []).some(f => f.type === 'photo' && f.id === fieldName);
+
+      const tr = document.createElement('tr');
+      config.csvColumns.forEach(col => {
+        const th = document.createElement('th');
+        th.textContent = col.header;
+        tr.appendChild(th);
+      });
+      const thActions = document.createElement('th');
+      thActions.textContent = 'Acciones';
+      thActions.style.width = '120px';
+      tr.appendChild(thActions);
+      thead.appendChild(tr);
+
+      records.forEach((record) => {
+        const tr = document.createElement('tr');
+        tr.setAttribute('data-uid', record.uid || '');
+
+        config.csvColumns.forEach(col => {
+          const td = document.createElement('td');
+          const value = record[col.field] || '';
+
+          if (col.field === 'resultado') {
+            td.className = value === 'Sin incidencia' ? 'status-good' : 'status-critical';
+            td.textContent = value;
+          } else if (isPhotoField(col.field)) {
+            // La foto se ve con la acción "Ver fotos"; aquí solo un indicador.
+            td.textContent = value ? '1 foto' : '—';
+            td.style.color = 'var(--text-mut)';
+          } else {
+            td.textContent = value;
+          }
+
+          tr.appendChild(td);
+        });
+
+        // Columna de acciones (íconos SVG estilo Lucide)
+        const tdActions = document.createElement('td');
+        tdActions.style.display = 'flex';
+        tdActions.style.gap = '4px';
+
+        // Ver fotos — solo si el registro tiene alguna foto ligada
+        if (this.recordHasPhotos(this.currentLog, record)) {
+          const btnView = document.createElement('button');
+          btnView.className = 'btn-action btn-view';
+          btnView.title = 'Ver fotos';
+          btnView.innerHTML = SVG_ICONS.image;
+          btnView.addEventListener('click', () => this.viewRecordPhotos(this.currentLog, record));
+          tdActions.appendChild(btnView);
+        }
+
+        const btnDelete = document.createElement('button');
+        btnDelete.className = 'btn-action btn-delete';
+        btnDelete.title = 'Borrar registro';
+        btnDelete.innerHTML = SVG_ICONS.trash;
+        btnDelete.addEventListener('click', () => this.deleteRecord(this.currentLog, record.uid));
+
+        tdActions.appendChild(btnDelete);
+        tr.appendChild(tdActions);
+
+        tbody.appendChild(tr);
+      });
+    }
+
+    async deleteRecord(logType, uid) {
+      if (!confirm('¿Estás seguro de que quieres borrar este registro? Se eliminará tanto de la tabla como del consolidado.')) {
+        return;
+      }
+
+      const records = this.logs[logType];
+      const recordIndex = records.findIndex(r => r.uid === uid);
+      if (recordIndex < 0) {
+        alert('Registro no encontrado');
+        return;
+      }
+
+      const deletedRecord = records[recordIndex];
+
+      // Borrar del array local
+      records.splice(recordIndex, 1);
+
+      // Actualizar el bucket en Grid
+      try {
+        await this.gridClient.setStateBucket(`${logType}_master`, { version: 1, records });
+        this.showNotification('Registro borrado exitosamente', 'success');
+      } catch (error) {
+        records.splice(recordIndex, 0, deletedRecord); // Restaurar si falla
+        this.showNotification('Error al borrar: ' + error.message, 'error');
+        return;
+      }
+
+      // Recargar tabla y gráficas
+      this.render();
+    }
+
+    /**
+     * Busca en los registros filtrados por fecha (en memoria, no en el DOM
+     * ya renderizado) para que la búsqueda alcance registros fuera de la
+     * página actual, y muestra todos los resultados sin paginar.
+     */
+    filterTable(query) {
+      if (!query.trim()) {
+        this.displayedCount = 10;
+        this.render();
+        return;
+      }
+
+      const filteredRecords = this.getFilteredRecords();
+      const queryLower = query.toLowerCase();
+      const config = FORMS_CONFIG[this.currentLog];
+      const searchResults = filteredRecords.filter(r => {
+        const recordText = (config.csvColumns || [])
+          .map(col => String(r[col.field] || '').toLowerCase())
+          .join(' ');
+        return recordText.includes(queryLower);
+      });
+
+      this.renderTable(searchResults);
+
+      const btnLoadMore = document.getElementById('btn-load-more');
+      const paginationInfo = document.getElementById('pagination-info');
+      btnLoadMore.style.display = 'none';
+      paginationInfo.textContent = `${searchResults.length} resultado${searchResults.length !== 1 ? 's' : ''} encontrado${searchResults.length !== 1 ? 's' : ''}`;
+    }
+
+    /** ¿El registro tiene al menos una foto (doc ID o data URL legacy)? */
+    recordHasPhotos(logType, record) {
+      const config = FORMS_CONFIG[logType];
+      return (config.fields || []).some(f => f.type === 'photo' && record[f.id]);
+    }
+
+    /**
+     * Abre el modal con las fotos del registro. Cada campo de foto guarda
+     * un doc ID de Grid (nuevo formato) o un data URL inline (registros
+     * viejos); ambos se resuelven a una imagen visible.
+     */
+    async viewRecordPhotos(logType, record) {
+      const config = FORMS_CONFIG[logType];
+      const photoFields = (config.fields || []).filter(f => f.type === 'photo' && record[f.id]);
+
+      const modal = document.getElementById('photo-modal');
+      const body = document.getElementById('photo-modal-body');
+      body.innerHTML = '<div class="empty-state" style="padding:24px;">Cargando fotos…</div>';
+      modal.classList.add('active');
+
+      const items = [];
+      for (const field of photoFields) {
+        const value = record[field.id];
+        let src = null;
+        if (typeof value === 'string' && value.startsWith('data:')) {
+          src = value; // registro viejo con foto inline
+        } else if (value) {
+          src = await this.gridClient.downloadDocumentAsObjectUrl(value); // doc ID → blob
+        }
+        items.push({ label: field.label || field.id, src });
+      }
+
+      body.innerHTML = '';
+      items.forEach(({ label, src }) => {
+        if (src) {
+          const img = document.createElement('img');
+          img.src = src;
+          img.style.cssText = 'width:100%;border-radius:8px;';
+          body.appendChild(img);
+        } else {
+          const err = document.createElement('div');
+          err.className = 'empty-state';
+          err.style.padding = '16px';
+          err.textContent = 'No se pudo cargar la foto.';
+          body.appendChild(err);
+        }
+      });
+
+      if (!items.length) {
+        body.innerHTML = '<div class="empty-state" style="padding:24px;">Este registro no tiene fotos.</div>';
+      }
+    }
+
+    async downloadAll() {
+      // Consolidar todos los registros con su tipo
+      const allRecords = [];
+
+      for (const [logType, records] of Object.entries(this.logs)) {
+        records.forEach(rec => {
+          allRecords.push({
+            'Tipo de Log': FORMS_CONFIG[logType].title,
+            ...rec
+          });
+        });
+      }
+
+      if (allRecords.length === 0) {
+        alert('No hay registros para descargar');
+        return;
+      }
+
+      // Obtener todos los campos únicos
+      const allFields = new Set();
+      allRecords.forEach(rec => Object.keys(rec).forEach(k => allFields.add(k)));
+
+      // Crear encabezados en orden: Tipo de Log, luego los demás
+      const headers = ['Tipo de Log', ...Array.from(allFields).filter(f => f !== 'Tipo de Log')];
+
+      // Generar CSV manualmente (similar a CSVEngine pero con más flexibilidad)
+      const escapeCsv = (val) => {
+        if (val === null || val === undefined) return '';
+        const str = String(val);
+        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+          return '"' + str.replace(/"/g, '""') + '"';
+        }
+        return str;
+      };
+
+      const csvLines = [headers.map(escapeCsv).join(',')];
+      allRecords.forEach(rec => {
+        const row = headers.map(h => escapeCsv(rec[h] || '')).join(',');
+        csvLines.push(row);
+      });
+
+      const csv = '﻿' + csvLines.join('\n'); // BOM UTF-8
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `consolidado_${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    showNotification(message, type = 'success') {
+      const colors = {
+        success: { bg: 'rgba(255,209,0,.12)', border: 'rgba(255,209,0,.35)', text: '#FFE680', dot: '#FFD100' },
+        error: { bg: 'rgba(255,92,108,.12)', border: 'rgba(255,92,108,.35)', text: '#FFB3BB', dot: '#FF5C6C' },
+      };
+      const palette = colors[type] || colors.success;
+
+      const toast = document.createElement('div');
+      toast.style.cssText = `
+        position: fixed; bottom: 24px; right: 24px; z-index: 200;
+        display: flex; align-items: center; gap: 10px;
+        padding: 12px 18px; border-radius: var(--r-md);
+        background: ${palette.bg}; border: 1px solid ${palette.border}; color: ${palette.text};
+        font-size: 13px; font-weight: 600; box-shadow: 0 18px 40px -20px rgba(0,0,0,.7);
+      `;
+      const dot = document.createElement('span');
+      dot.style.cssText = `width:7px; height:7px; border-radius:50%; background:${palette.dot}; flex-shrink:0;`;
+      const text = document.createElement('span');
+      text.textContent = message;
+      toast.appendChild(dot);
+      toast.appendChild(text);
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 4000);
+    }
+
+    getLogTitle(logType) {
+      const config = FORMS_CONFIG[logType];
+      return config?.title || logType;
+    }
+  }
+
+  // ==========================================================================
+  // Config
+  // ==========================================================================
+
+  const FORMS_CONFIG = {
+    destino_doca: {
+      title: 'Pre - Missort',
+      csvColumns: [
+        { field: 'auditoria', header: 'Auditoría' },
+        { field: 'ts', header: 'Fecha/Hora' },
+        { field: 'hu', header: 'HU' },
+        { field: 'destino', header: 'Destino' },
+        { field: 'doca', header: 'Doca' },
+        { field: 'resultado', header: 'Resultado' },
+      ],
+      fields: [],
+    },
+    fury: {
+      title: 'FURY',
+      csvColumns: [
+        { field: 'auditoria', header: 'Auditoría' },
+        { field: 'ts', header: 'Fecha/Hora' },
+        { field: 'shipment', header: 'Shipment ID' },
+        { field: 'foto', header: 'Foto' },
+        { field: 'situacion', header: 'Situación' },
+        { field: 'valor', header: 'USD Valor' },
+      ],
+      fields: [{ type: 'photo', id: 'foto' }],
+    },
+    contenerizado: {
+      title: 'Contenerizado',
+      csvColumns: [
+        { field: 'auditoria', header: 'Auditoría' },
+        { field: 'ts', header: 'Fecha/Hora' },
+        { field: 'shipment', header: 'Shipment ID' },
+        { field: 'situacion', header: 'Situación' },
+        { field: 'foto', header: 'Foto' },
+      ],
+      fields: [{ type: 'photo', id: 'foto' }],
+    },
+    linehaul: {
+      title: 'Posible daño LH',
+      csvColumns: [
+        { field: 'auditoria', header: 'Auditoría' },
+        { field: 'ts', header: 'Fecha/Hora' },
+        { field: 'hu', header: 'HU' },
+        { field: 'area', header: 'Área' },
+        { field: 'direccion', header: 'Inbound/Outbound' },
+        { field: 'es_transfer', header: 'Es Transfer' },
+        { field: 'tipo_transfer', header: 'Tipo Transfer' },
+        { field: 'origen', header: 'Origen' },
+        { field: 'canalizacion', header: 'Canalización' },
+        { field: 'foto', header: 'Foto' },
+        { field: 'comentarios', header: 'Comentarios' },
+      ],
+      fields: [{ type: 'photo', id: 'foto' }],
+    },
+    inbound_fm: {
+      title: 'Inbound FM',
+      csvColumns: [
+        { field: 'auditoria', header: 'Auditoría' },
+        { field: 'ts', header: 'Fecha/Hora' },
+        { field: 'patente', header: 'Patente' },
+        { field: 'diferencia_shipments', header: 'Diferencia de Shipments' },
+        { field: 'hallazgo', header: 'Hallazgo' },
+        { field: 'evidencia', header: 'Evidencia' },
+      ],
+      fields: [{ type: 'photo', id: 'evidencia' }],
+    },
+  };
+
+  // Initialize
+  DebugConsole.setup();
+  const dashboard = new AuditDashboard();
+</script>
+</body>
+</html>

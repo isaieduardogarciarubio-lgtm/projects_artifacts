@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Test: Notificaciones del navegador — Auditorías SVC</title>
+<style>
+  :root {
+    --bg: #000000;
+    --surface: #1c1c1e;
+    --surface-hover: #2c2c2e;
+    --border: #2c2c2e;
+    --text: #ffffff;
+    --text-muted: #8e8e93;
+    --error: #ff453a;
+    --success: #34c759;
+    --warn: #ffcc00;
+    --info: #0a84ff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    padding: 16px;
+    padding-bottom: 40px;
+  }
+  h1 {
+    font-size: 1.3rem;
+    margin-bottom: 4px;
+  }
+  .subtitle {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    margin-bottom: 20px;
+    line-height: 1.4;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .card h2 {
+    font-size: 1rem;
+    margin: 0 0 10px;
+  }
+  label {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+  input[type="text"], input[type="number"] {
+    width: 100%;
+    background: #0a0a0a;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: var(--text);
+    font-size: 0.9rem;
+    margin-bottom: 12px;
+  }
+  button {
+    background: var(--text);
+    color: #000;
+    border: none;
+    border-radius: 999px;
+    padding: 10px 18px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    margin: 4px 6px 4px 0;
+  }
+  button.secondary {
+    background: var(--surface-hover);
+    color: var(--text);
+  }
+  button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .result-box {
+    margin-top: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-family: 'SF Mono', 'Fira Code', Consolas, monospace;
+    white-space: pre-wrap;
+    word-break: break-all;
+    display: none;
+  }
+  .result-box.show { display: block; }
+  .result-box.ok { background: rgba(52,199,89,0.12); border: 1px solid rgba(52,199,89,0.35); color: #7ee89a; }
+  .result-box.fail { background: rgba(255,69,58,0.12); border: 1px solid rgba(255,69,58,0.35); color: #ffb3ab; }
+  .result-box.pending { background: rgba(10,132,255,0.12); border: 1px solid rgba(10,132,255,0.35); color: #8fc4ff; }
+  .result-box.warn { background: rgba(255,204,0,0.12); border: 1px solid rgba(255,204,0,0.35); color: #ffe066; }
+
+  .status-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0;
+    font-size: 0.85rem;
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .dot.ok { background: var(--success); }
+  .dot.fail { background: var(--error); }
+  .dot.warn { background: var(--warn); }
+
+  #console {
+    background: #050505;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px;
+    height: 300px;
+    overflow-y: auto;
+    font-family: 'SF Mono', 'Fira Code', Consolas, monospace;
+    font-size: 0.72rem;
+    line-height: 1.5;
+  }
+  .log-line { padding: 2px 0; border-bottom: 1px solid #151515; }
+  .log-ok { color: var(--success); }
+  .log-fail { color: var(--error); }
+  .log-info { color: var(--text-muted); }
+  .log-warn { color: var(--warn); }
+</style>
+</head>
+<body>
+
+<h1>🔔 Test: Notificaciones del navegador</h1>
+<div class="subtitle">
+  Prueba controlada antes de construir el sistema de alertas del dashboard de revisión.
+  Grid monta el documento en un iframe — hay que confirmar que ese iframe permite pedir
+  permiso de <code>Notification</code> y disparar notificaciones reales, antes de asumir
+  que el flujo de "alerta al revisor" es viable dentro de Grid.
+</div>
+
+<div class="card">
+  <h2>1. Soporte del navegador</h2>
+  <div id="support-rows"></div>
+</div>
+
+<div class="card">
+  <h2>2. Permiso de notificaciones</h2>
+  <label>Estado actual del permiso</label>
+  <div class="result-box show pending" id="permission-status">Consultando...</div>
+  <button id="btn-request-permission">Solicitar permiso (Notification.requestPermission)</button>
+  <div class="result-box" id="permission-result"></div>
+</div>
+
+<div class="card">
+  <h2>3. Disparar notificación de prueba</h2>
+  <label>Título</label>
+  <input type="text" id="notif-title" value="Nuevo Incorrecto — Contenedor">
+  <label>Cuerpo</label>
+  <input type="text" id="notif-body" value="Shipment 123456789 requiere revisión">
+  <button id="btn-fire-notification" disabled>Disparar notificación (new Notification)</button>
+  <div class="result-box" id="fire-result"></div>
+</div>
+
+<div class="card">
+  <h2>4. Simular polling con la pestaña en segundo plano</h2>
+  <div class="subtitle" style="margin-bottom: 12px;">
+    Dispara una notificación después de N segundos — cambia de pestaña o minimiza el
+    navegador antes de que termine el conteo, para ver si la notificación real llega
+    con la app en segundo plano (el escenario real de un revisor que no está mirando
+    la pantalla en ese momento).
+  </div>
+  <label>Segundos de espera</label>
+  <input type="number" id="delay-seconds" value="8" min="1" max="60">
+  <button id="btn-delayed-notification" disabled>Programar notificación retrasada</button>
+  <div class="result-box" id="delayed-result"></div>
+</div>
+
+<div class="card">
+  <h2>5. Consola de depuración</h2>
+  <button class="secondary" id="btn-copy-log">Copiar log</button>
+  <button class="secondary" id="btn-clear-log">Limpiar</button>
+  <div id="console"></div>
+</div>
+
+<script>
+const logEl = document.getElementById('console');
+const logEntries = [];
+
+function log(message, level = 'info') {
+  const ts = new Date().toLocaleTimeString('es-MX', { hour12: false });
+  logEntries.push(`[${ts}] [${level}] ${message}`);
+  const line = document.createElement('div');
+  line.className = `log-line log-${level}`;
+  line.textContent = `[${ts}] ${message}`;
+  logEl.appendChild(line);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+document.getElementById('btn-clear-log').addEventListener('click', () => {
+  logEl.innerHTML = '';
+  logEntries.length = 0;
+});
+
+document.getElementById('btn-copy-log').addEventListener('click', () => {
+  navigator.clipboard.writeText(logEntries.join('\n'))
+    .then(() => log('Log copiado al portapapeles', 'ok'))
+    .catch(() => log('No se pudo copiar — selecciona el texto manualmente', 'warn'));
+});
+
+/* ============================ 1. Soporte ============================ */
+
+function addStatusRow(label, ok, detail) {
+  const container = document.getElementById('support-rows');
+  const row = document.createElement('div');
+  row.className = 'status-row';
+  row.innerHTML = `<span class="dot ${ok ? 'ok' : 'fail'}"></span><span>${label}${detail ? ' — ' + detail : ''}</span>`;
+  container.appendChild(row);
+}
+
+const hasNotificationApi = 'Notification' in window;
+addStatusRow('window.Notification existe', hasNotificationApi);
+log(`Notification API disponible: ${hasNotificationApi}`, hasNotificationApi ? 'ok' : 'fail');
+
+const hasPermissionsApi = 'permissions' in navigator;
+addStatusRow('navigator.permissions existe', hasPermissionsApi);
+log(`Permissions API disponible: ${hasPermissionsApi}`, hasPermissionsApi ? 'ok' : 'warn');
+
+if (hasPermissionsApi) {
+  navigator.permissions.query({ name: 'notifications' }).then((status) => {
+    addStatusRow(`navigator.permissions.query('notifications')`, true, status.state);
+    log(`Permissions API — estado de notifications: ${status.state}`, 'info');
+  }).catch((e) => {
+    addStatusRow(`navigator.permissions.query('notifications') falló`, false, e.message);
+    log(`Permissions API query falló (posible bloqueo del iframe de Grid): ${e.message}`, 'fail');
+  });
+}
+
+/* ======================== 2. Estado del permiso ======================== */
+
+function refreshPermissionStatus() {
+  const box = document.getElementById('permission-status');
+  if (!hasNotificationApi) {
+    box.className = 'result-box show fail';
+    box.textContent = '✗ Notification API no disponible en este navegador/contexto.';
+    return;
+  }
+  const perm = Notification.permission;
+  box.className = `result-box show ${perm === 'granted' ? 'ok' : perm === 'denied' ? 'fail' : 'warn'}`;
+  box.textContent = `Notification.permission = "${perm}"`;
+  document.getElementById('btn-fire-notification').disabled = perm !== 'granted';
+  document.getElementById('btn-delayed-notification').disabled = perm !== 'granted';
+}
+refreshPermissionStatus();
+log(`Notification.permission inicial: ${hasNotificationApi ? Notification.permission : '(N/A)'}`, 'info');
+
+document.getElementById('btn-request-permission').addEventListener('click', async () => {
+  const resultBox = document.getElementById('permission-result');
+  if (!hasNotificationApi) {
+    resultBox.className = 'result-box show fail';
+    resultBox.textContent = '✗ Notification API no existe en este contexto — no se puede pedir permiso.';
+    log('Notification API no existe — no se puede solicitar permiso', 'fail');
+    return;
+  }
+
+  resultBox.className = 'result-box show pending';
+  resultBox.textContent = 'Solicitando permiso...';
+  log('Llamando Notification.requestPermission()...', 'info');
+
+  try {
+    const result = await Notification.requestPermission();
+    resultBox.className = `result-box show ${result === 'granted' ? 'ok' : 'fail'}`;
+    resultBox.textContent = `Resultado: "${result}"`;
+    log(`Notification.requestPermission() → "${result}"`, result === 'granted' ? 'ok' : 'fail');
+    refreshPermissionStatus();
+  } catch (e) {
+    resultBox.className = 'result-box show fail';
+    resultBox.textContent = `✗ Error: ${e.message}\n\nSi este error menciona "permissions policy", "feature policy", o "not allowed in this context" — es el iframe de Grid bloqueando el permiso, igual que bloquea /move-document o el input capture en handheld.`;
+    log(`✗ Notification.requestPermission() excepción: ${e.message}`, 'fail');
+  }
+});
+
+/* ==================== 3. Disparar notificación real ==================== */
+
+document.getElementById('btn-fire-notification').addEventListener('click', () => {
+  const resultBox = document.getElementById('fire-result');
+  const title = document.getElementById('notif-title').value.trim() || 'Prueba';
+  const body = document.getElementById('notif-body').value.trim() || '';
+
+  log(`Disparando new Notification("${title}", {body: "${body}"})...`, 'info');
+  try {
+    const n = new Notification(title, { body, icon: undefined });
+    n.onshow = () => {
+      log('✓ Evento onshow disparado — la notificación se mostró', 'ok');
+      resultBox.className = 'result-box show ok';
+      resultBox.textContent = '✓ Notificación creada y mostrada (evento onshow).';
+    };
+    n.onerror = (e) => {
+      log(`✗ Evento onerror en la notificación: ${JSON.stringify(e)}`, 'fail');
+      resultBox.className = 'result-box show fail';
+      resultBox.textContent = '✗ La notificación se creó pero disparó onerror — revisa la consola.';
+    };
+    n.onclick = () => log('Notificación clickeada por el usuario', 'info');
+    resultBox.className = 'result-box show pending';
+    resultBox.textContent = 'new Notification(...) no lanzó excepción — esperando evento onshow/onerror...';
+  } catch (e) {
+    resultBox.className = 'result-box show fail';
+    resultBox.textContent = `✗ new Notification() lanzó excepción: ${e.message}`;
+    log(`✗ new Notification() excepción: ${e.message}`, 'fail');
+  }
+});
+
+/* ================ 4. Notificación retrasada (background) ================ */
+
+document.getElementById('btn-delayed-notification').addEventListener('click', () => {
+  const resultBox = document.getElementById('delayed-result');
+  const seconds = Math.max(1, Math.min(60, parseInt(document.getElementById('delay-seconds').value, 10) || 8));
+
+  log(`Notificación programada en ${seconds}s — cambia de pestaña o minimiza ahora para probar background.`, 'info');
+  resultBox.className = 'result-box show pending';
+  resultBox.textContent = `Esperando ${seconds}s... cambia de pestaña/app ahora.`;
+
+  let remaining = seconds;
+  const interval = setInterval(() => {
+    remaining -= 1;
+    if (remaining > 0) {
+      resultBox.textContent = `Esperando ${remaining}s... cambia de pestaña/app ahora.`;
+    }
+  }, 1000);
+
+  setTimeout(() => {
+    clearInterval(interval);
+    log(`Disparando notificación retrasada tras ${seconds}s (visibility state: ${document.visibilityState})...`, 'info');
+    try {
+      const n = new Notification('Alerta retrasada — Auditorías SVC', {
+        body: `Disparada tras ${seconds}s con document.visibilityState = "${document.visibilityState}"`,
+      });
+      n.onshow = () => log(`✓ Notificación retrasada mostrada (visibilityState al disparar: ${document.visibilityState})`, 'ok');
+      n.onerror = () => log('✗ Notificación retrasada disparó onerror', 'fail');
+      resultBox.className = 'result-box show ok';
+      resultBox.textContent = `✓ Disparada (visibilityState: ${document.visibilityState}). Revisa si llegó realmente al sistema.`;
+    } catch (e) {
+      resultBox.className = 'result-box show fail';
+      resultBox.textContent = `✗ Error al disparar: ${e.message}`;
+      log(`✗ Error en notificación retrasada: ${e.message}`, 'fail');
+    }
+  }, seconds * 1000);
+});
+
+document.addEventListener('visibilitychange', () => {
+  log(`visibilitychange → document.visibilityState = "${document.visibilityState}"`, 'info');
+});
+
+log('App de prueba lista. Paso 1: revisa soporte. Paso 2: pide permiso. Paso 3: dispara una notificación de prueba. Paso 4: prueba el escenario real (pestaña en segundo plano).', 'info');
+</script>
+</body>
+</html>

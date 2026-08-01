@@ -1,0 +1,46 @@
+name: Deploy to GitHub Pages
+
+# Publica el formulario (index.html + js/ + css/ + data/) en GitHub Pages.
+# Usa el flujo de despliegue por GitHub Actions: configure-pages intenta
+# habilitar Pages automáticamente, así no hace falta tocar Settings a mano.
+
+on:
+  push:
+    branches:
+      - claude/grid-webapp-planning-aat9tw
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Un solo despliegue a la vez; no cancela el que esté en curso.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # Raíz del repo: el formulario es index.html en la raíz.
+          path: '.'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

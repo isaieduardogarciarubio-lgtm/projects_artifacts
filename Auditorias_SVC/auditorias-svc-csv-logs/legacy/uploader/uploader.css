@@ -1,0 +1,14 @@
+/**
+ * Ajustes propios del uploader sobre Nocturne — a diferencia de la app de
+ * captura (pensada para escanear en el celular, columna angosta a propósito
+ * incluso en desktop), este es un conversor de archivos que se usa sobre
+ * todo desde una computadora: en pantallas anchas, la columna de 640px
+ * compartida se ve angosta y perdida en medio de la página, y la tabla de
+ * preview no tiene espacio para las columnas del catálogo.
+ */
+@media (min-width: 900px) {
+  .content,
+  .navbar-inner {
+    max-width: 820px;
+  }
+}

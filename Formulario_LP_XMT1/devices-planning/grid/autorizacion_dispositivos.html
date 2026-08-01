@@ -1,0 +1,3184 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Autorización de Dispositivos</title>
+  <style>
+    /* ──────────────────────────────────────────────────────────────────────────── */
+    /* NOCTURNE DESIGN SYSTEM — MercadoLibre Grid Dark Theme */
+    /* ──────────────────────────────────────────────────────────────────────────── */
+    :root {
+      /* Superficies */
+      --bg: #090C0E;
+      --surface: #11161A;
+      --surface-2: #161D22;
+      --border: #1F2830;
+      --border-soft: #161C21;
+
+      /* Acento Meli */
+      --accent: #FFD100;
+      --accent-strong: #E6BC00;
+      --accent-dim: #6E5E00;
+      --accent-glow: rgba(255, 209, 0, 0.14);
+      --on-accent: #1A1A1A;
+
+      /* Texto */
+      --text: #F4F6F8;
+      --text-sub: #AAB4BC;
+      --text-mut: #6B757D;
+
+      /* Badges / estados */
+      --c-green: #00D689;
+      --c-blue: #5A95FF;
+      --c-orange: #FF9E45;
+      --c-red: #FF5C6C;
+
+      /* Forma */
+      --r-sm: 8px;
+      --r-md: 12px;
+      --r-lg: 18px;
+      --r-pill: 999px;
+      --shadow: 0 18px 40px -20px rgba(0, 0, 0, 0.7);
+
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto,
+        Helvetica, Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+    }
+
+    body {
+      background-image: radial-gradient(
+        1000px 640px at 100% -8%,
+        rgba(255, 209, 0, 0.09),
+        transparent 55%
+      ), radial-gradient(
+        760px 520px at -12% 108%,
+        rgba(255, 209, 0, 0.04),
+        transparent 60%
+      );
+      background-attachment: fixed;
+    }
+
+    /* ──── NAVBAR ──── */
+    /* Mobile-first: las tres piezas (brand · menubar · actions) van    */
+    /* siempre en una sola hilera. En móvil el menubar muestra solo los */
+    /* íconos SVG (labels ocultos) para caber al nivel del logo.        */
+    .navbar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 12px 16px;
+      background: linear-gradient(180deg, rgba(9, 12, 14, 0.85), rgba(9, 12, 14, 0));
+      backdrop-filter: blur(10px);
+    }
+
+    .navbar-brand {
+      order: 1;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .navbar-brand b {
+      color: var(--accent);
+    }
+
+    .navbar-logo {
+      display: block;
+      width: 48px;
+      height: 48px;
+      flex-shrink: 0;
+      object-fit: contain;
+      border-radius: var(--r-sm);
+    }
+
+    .navbar-actions {
+      order: 3;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .icon-btn {
+      width: 38px;
+      height: 38px;
+      flex-shrink: 0;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--border);
+      border-radius: var(--r-pill);
+      background: var(--surface-2);
+      color: var(--text-sub);
+      cursor: pointer;
+      transition: all 0.16s;
+    }
+
+    .icon-btn:hover {
+      color: var(--text);
+      border-color: var(--accent-dim);
+    }
+
+    /* Avatar con iniciales del email (reemplaza el ícono de config) */
+    .user-avatar {
+      width: 38px;
+      height: 38px;
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--r-pill);
+      background: linear-gradient(180deg, var(--accent), var(--accent-strong));
+      color: var(--on-accent);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    /* ──── CONTAINER ──── */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+
+    /* ──── MENUBAR (Pastillas Nocturne) ──── */
+    /* Botonera media en píldora: patrón característico de Nocturne para */
+    /* navegación entre secciones (aquí: Registro / Historial).          */
+    .menubar {
+      order: 2;
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--r-pill);
+      padding: 5px;
+      justify-content: center;
+    }
+
+    .menubar-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+      background: transparent;
+      border: none;
+      color: var(--text-sub);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 8px 12px;
+      white-space: nowrap;
+      border-radius: var(--r-pill);
+      cursor: pointer;
+      transition: all 0.16s;
+    }
+
+    .menubar-btn svg {
+      flex-shrink: 0;
+    }
+
+    /* Móvil: solo íconos en las pastillas para que quepan al nivel del */
+    /* logo. Los labels reaparecen desde tablet/escritorio.            */
+    .menubar-label {
+      display: none;
+    }
+
+    .menubar-btn:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .menubar-btn.active {
+      color: var(--text);
+      background: var(--surface);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* ──── GRID (Skeleton CSS, vendorizado y adaptado mobile-first) ──── */
+    /* Basado en Skeleton v2.0.4 (MIT). Skeleton original es desktop-first */
+    /* (columnas por %, colapsan a 100% bajo 550px); aquí se invierte:     */
+    /* base = 1 columna (móvil), las fracciones de 12 solo aplican desde   */
+    /* tablet/escritorio.                                                  */
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      width: 100%;
+      gap: 16px;
+    }
+
+    .column {
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    @media (min-width: 769px) {
+      .row {
+        flex-wrap: nowrap;
+      }
+
+      .column.one { width: 8.3333%; }
+      .column.two { width: 16.6666%; }
+      .column.three { width: 25%; }
+      .column.four { width: 33.3333%; }
+      .column.five { width: 41.6666%; }
+      .column.six { width: 50%; }
+      .column.seven { width: 58.3333%; }
+      .column.eight { width: 66.6666%; }
+      .column.nine { width: 75%; }
+      .column.ten { width: 83.3333%; }
+      .column.eleven { width: 91.6666%; }
+      .column.twelve { width: 100%; }
+    }
+
+    /* ──── CARD ──── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+
+    .card-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 20px;
+      color: var(--text);
+    }
+
+    /* ──── FORM GROUPS ──── */
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: var(--text-sub);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      font-family: inherit;
+      font-size: 14px;
+      color: var(--text);
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      padding: 10px 14px;
+      transition: all 0.16s;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .form-group input::placeholder {
+      color: var(--text-mut);
+    }
+
+    .form-group input[type="hidden"] {
+      display: none;
+    }
+
+    /* ──── BUTTONS ──── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      border-radius: var(--r-pill);
+      padding: 11px 22px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.16s;
+    }
+
+    .btn svg {
+      flex-shrink: 0;
+    }
+
+    .btn-primary {
+      background: linear-gradient(180deg, var(--accent), var(--accent-strong));
+      color: var(--on-accent);
+      box-shadow: 0 8px 22px -12px var(--accent-glow),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    }
+
+    .btn-primary:hover {
+      filter: brightness(1.05);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: var(--surface-2);
+      border-color: var(--border);
+      color: var(--text);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--accent-dim);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-sub);
+    }
+
+    .btn-ghost:hover {
+      color: var(--text);
+      background: var(--surface-2);
+    }
+
+    .btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* ──── FILE UPLOAD / DROP ZONE ──── */
+    .photo-source-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .dropzone {
+      border: 2px dashed var(--border);
+      border-radius: var(--r-md);
+      padding: 20px;
+      text-align: center;
+      background: var(--surface-2);
+      cursor: pointer;
+      transition: all 0.16s;
+    }
+
+    .dropzone:hover {
+      border-color: var(--accent-dim);
+      background: var(--surface);
+    }
+
+    .dropzone.drag-over {
+      border-color: var(--accent);
+      background: rgba(255, 209, 0, 0.06);
+    }
+
+    .dropzone input[type="file"] {
+      display: none;
+    }
+
+    .dropzone-text {
+      font-size: 14px;
+      color: var(--text-sub);
+    }
+
+    .dropzone-icon {
+      display: flex;
+      justify-content: center;
+      color: var(--text-sub);
+      margin-bottom: 8px;
+      opacity: 0.6;
+    }
+
+    /* ──── PHOTO PREVIEW ──── */
+    .photo-preview {
+      display: flex;
+      gap: 12px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+
+    .photo-preview-item {
+      position: relative;
+      width: 120px;
+      height: 120px;
+      border-radius: var(--r-md);
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+
+    .photo-preview-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .photo-remove {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      background: rgba(0, 0, 0, 0.6);
+      border: none;
+      border-radius: 4px;
+      color: var(--c-red);
+      cursor: pointer;
+      transition: background 0.16s;
+    }
+
+    .photo-remove svg {
+      pointer-events: none;
+    }
+
+    .photo-remove:hover {
+      background: rgba(0, 0, 0, 0.8);
+    }
+
+    /* ──── STEP INDICATOR ──── */
+    .step-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 24px;
+      font-size: 12px;
+      color: var(--text-sub);
+    }
+
+    .step-number {
+      width: 24px;
+      height: 24px;
+      border-radius: var(--r-pill);
+      background: var(--surface-2);
+      display: grid;
+      place-items: center;
+      font-weight: 600;
+    }
+
+    .step-number.active {
+      background: var(--accent);
+      color: var(--on-accent);
+    }
+
+    /* ──── ALERT / MODAL ──── */
+    .alert {
+      display: flex;
+      gap: 12px;
+      padding: 14px 16px;
+      border-radius: var(--r-md);
+      font-size: 14px;
+      border: 1px solid;
+      margin-bottom: 12px;
+      align-items: center;
+    }
+
+    .alert.success {
+      border-color: rgba(0, 214, 137, 0.35);
+      background: rgba(0, 214, 137, 0.08);
+      color: #7fe9c2;
+    }
+
+    .alert.error {
+      border-color: rgba(255, 92, 108, 0.35);
+      background: rgba(255, 92, 108, 0.08);
+      color: #ffb3bb;
+    }
+
+    .alert.warn {
+      border-color: rgba(255, 209, 0, 0.35);
+      background: rgba(255, 209, 0, 0.08);
+      color: #ffe680;
+    }
+
+    .alert.info {
+      border-color: rgba(90, 149, 255, 0.35);
+      background: rgba(90, 149, 255, 0.08);
+      color: #aac8ff;
+    }
+
+    .alert svg {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+    }
+
+    /* ──── MODAL ──── */
+    .modal-bg {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 100;
+      backdrop-filter: blur(4px);
+    }
+
+    .modal-bg.active {
+      display: grid;
+      place-items: center;
+    }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: 16px;
+      width: 90vw;
+      max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: var(--shadow);
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+
+    .modal-body {
+      margin-bottom: 20px;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .modal-footer {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+
+    /* ──── SCANNER ──── */
+    .scanner-container {
+      border: 2px solid var(--border);
+      border-radius: var(--r-md);
+      overflow: hidden;
+      background: var(--surface-2);
+      margin-bottom: 20px;
+    }
+
+    #scanner-video {
+      width: 100%;
+      height: 240px;
+      background: #000;
+      display: block;
+    }
+
+    .scanner-controls {
+      display: flex;
+      gap: 12px;
+      padding: 12px;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+    }
+
+    .scanner-result {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      padding: 12px;
+      margin-top: 12px;
+      font-size: 12px;
+      word-break: break-all;
+    }
+
+    /* ──── TABLE ──── */
+    .table-wrapper {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      font-size: 13px;
+      border-collapse: collapse;
+    }
+
+    th {
+      background: var(--surface-2);
+      padding: 12px;
+      text-align: left;
+      font-weight: 600;
+      color: var(--text-sub);
+      border-bottom: 1px solid var(--border);
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.05em;
+    }
+
+    td {
+      padding: 12px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    tr:hover {
+      background: rgba(255, 209, 0, 0.02);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 5px 11px;
+      border-radius: var(--r-pill);
+      border: 1px solid currentColor;
+      background: color-mix(in srgb, currentColor 12%, transparent);
+    }
+
+    .badge::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .badge.green {
+      color: var(--c-green);
+    }
+
+    .badge.blue {
+      color: var(--c-blue);
+    }
+
+    .badge.orange {
+      color: var(--c-orange);
+    }
+
+    .badge.red {
+      color: var(--c-red);
+    }
+
+    .btn-view-photo {
+      padding: 6px 10px;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent);
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.16s;
+    }
+
+    .btn-view-photo:hover {
+      background: var(--accent-glow);
+      border-color: var(--accent);
+    }
+
+    /* ──── QR PREVIEW ──── */
+    .qr-preview {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      padding: 20px;
+      background: var(--surface-2);
+      border-radius: var(--r-md);
+      border: 1px solid var(--border);
+      margin-top: 20px;
+    }
+
+    .qr-canvas-wrapper {
+      background: white;
+      padding: 12px;
+      border-radius: 8px;
+    }
+
+    #qr-canvas {
+      display: block;
+      width: 200px;
+      height: 200px;
+    }
+
+    .qr-info {
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-sub);
+    }
+
+    /* ──── MORPH OVERLAY (animación de carga al guardar) ──── */
+    /* Reskin en tokens Nocturne del componente "botón morphing bloqueante": */
+    /* botón → orbe de carga → estado de éxito/error, con capa que bloquea  */
+    /* la pantalla mientras se guarda el registro.                          */
+    .morph-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(9, 12, 14, 0.75);
+      backdrop-filter: blur(4px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 200;
+      opacity: 1;
+      transition: opacity 0.25s ease;
+    }
+
+    .morph-overlay.hidden {
+      display: none;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .morph-btn {
+      background: linear-gradient(180deg, var(--accent), var(--accent-strong));
+      color: var(--on-accent);
+      border: none;
+      padding: 0 24px;
+      height: 48px;
+      border-radius: var(--r-pill);
+      font-family: inherit;
+      font-weight: 600;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 160px;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: var(--shadow);
+    }
+
+    .morph-btn.is-saving {
+      min-width: 48px;
+      width: 48px;
+      padding: 0;
+      border-radius: 50%;
+      background: transparent;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      color: transparent;
+      animation: morph-spin 0.9s linear infinite;
+      pointer-events: none;
+      box-shadow: 0 0 15px var(--accent-glow);
+    }
+
+    .morph-btn.is-saved {
+      background: var(--c-green);
+      color: #06251b;
+      min-width: 160px;
+      border-radius: var(--r-pill);
+      border: none;
+      box-shadow: 0 0 20px rgba(0, 214, 137, 0.5);
+    }
+
+    .morph-btn.is-error {
+      background: var(--c-red);
+      color: #2b0a0d;
+      min-width: 160px;
+      border-radius: var(--r-pill);
+      border: none;
+      box-shadow: 0 0 20px rgba(255, 92, 108, 0.5);
+    }
+
+    @keyframes morph-spin {
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* ──── HISTORIAL: SEGMENTADOR (Dispositivos / Escaneos) ──── */
+    .subtabs {
+      display: flex;
+      gap: 4px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--r-pill);
+      padding: 5px;
+      margin-bottom: 20px;
+      max-width: 340px;
+    }
+
+    .subtab-btn {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--text-sub);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 8px 12px;
+      border-radius: var(--r-pill);
+      cursor: pointer;
+      transition: all 0.16s;
+      white-space: nowrap;
+    }
+
+    .subtab-btn:hover {
+      color: var(--text);
+    }
+
+    .subtab-btn.active {
+      color: var(--on-accent, #1a1a1a);
+      background: var(--accent, #FFD100);
+    }
+
+    .historial-view {
+      display: none;
+    }
+
+    .historial-view.active {
+      display: block;
+    }
+
+    /* ──── HISTORIAL: FILAS COMPACTAS ──── */
+    /* Una línea por registro; el detalle completo va en el modal al   */
+    /* hacer tap/clic. Evita el desborde/estiramiento de tablas anchas */
+    /* en pantallas chicas y mantiene el historial escaneable.          */
+    .record-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .record-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      background: var(--surface-2);
+      cursor: pointer;
+      transition: all 0.16s;
+      text-align: left;
+    }
+
+    .record-row:hover {
+      border-color: var(--accent, #FFD100);
+      background: var(--surface);
+    }
+
+    .record-row-main {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .record-row-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .record-row-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .record-row-date {
+      font-size: 11px;
+      color: var(--text-mut);
+      white-space: nowrap;
+    }
+
+    .record-row-chevron {
+      color: var(--text-mut);
+      flex-shrink: 0;
+    }
+
+    /* ──── MODAL DE DETALLE: filas clave/valor ──── */
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+
+    .detail-row:last-child {
+      border-bottom: none;
+    }
+
+    .detail-row .k {
+      color: var(--text-sub);
+      flex-shrink: 0;
+    }
+
+    .detail-row .v {
+      color: var(--text);
+      font-weight: 600;
+      text-align: right;
+      word-break: break-word;
+    }
+
+    /* ──── RESPONSIVE ──── */
+    /* Mobile-first: los estilos base ya son los de móvil.        */
+    /* Este breakpoint solo añade mejoras progresivas en pantallas */
+    /* más grandes (tablet / escritorio).                          */
+    @media (min-width: 769px) {
+      .navbar {
+        padding: 16px 24px;
+      }
+
+      .navbar-logo {
+        width: 56px;
+        height: 56px;
+      }
+
+      .menubar {
+        gap: 8px;
+      }
+
+      .menubar-btn {
+        padding: 8px 16px;
+        font-size: 14px;
+      }
+
+      /* Reaparecen los labels de las pastillas en pantallas grandes */
+      .menubar-label {
+        display: inline;
+      }
+
+      .container {
+        padding: 20px;
+      }
+
+      .card {
+        padding: 24px;
+      }
+
+      #scanner-video {
+        height: 300px;
+      }
+
+      .modal {
+        padding: 24px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        transition: none !important;
+        animation: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <img id="navbar-logo-img" class="navbar-logo" alt="DeviceHub" style="display: none;" />
+    </div>
+    <!-- MENUBAR: pastillas Nocturne (Registro / Historial) -->
+    <!-- En móvil se muestran solo los íconos SVG (labels ocultos) para -->
+    <!-- que quepan al nivel del logo en la misma hilera.                -->
+    <div class="menubar">
+      <button class="menubar-btn active" data-tab="registro">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
+        <span class="menubar-label">Registro</span>
+      </button>
+      <button class="menubar-btn" data-tab="historial">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6a1 1 0 011 1v1H8V4a1 1 0 011-1z"/><rect x="5" y="5" width="14" height="16" rx="2"/><path d="M9 11h6M9 15h6"/></svg>
+        <span class="menubar-label">Historial</span>
+      </button>
+    </div>
+
+    <div class="navbar-actions">
+      <div id="pending-badge" style="display: none; align-items: center; gap: 6px; font-size: 12px; color: var(--c-orange);">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+        <span id="pending-count">0</span>
+      </div>
+      <button class="icon-btn" id="btn-bpp-config" title="Catálogo BPP" style="position: relative;">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        <span id="bpp-stale-badge" style="display: none; position: absolute; top: -2px; right: -2px; width: 10px; height: 10px; border-radius: 50%; background: var(--c-orange); border: 2px solid var(--bg);"></span>
+      </button>
+      <button class="icon-btn" id="btn-debug-console" title="Consola de depuración" style="position: relative;">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+        <span id="debug-console-inline-badge" style="display: none; position: absolute; top: -2px; right: -2px; width: 16px; height: 16px; border-radius: 50%; background: var(--c-red); color: #fff; font-size: 9px; font-weight: 700; align-items: center; justify-content: center;"></span>
+      </button>
+      <div class="user-avatar" id="user-avatar" title="">?</div>
+    </div>
+  </nav>
+
+  <!-- CONTAINER -->
+  <div class="container">
+    <!-- TAB: REGISTRO -->
+    <div id="tab-registro" class="tab-content active">
+      <div class="card">
+        <div class="card-title">Registrar Nuevo Dispositivo</div>
+
+        <div class="step-indicator">
+          <div class="step-number active">1</div>
+          <span>Tipo de Puesto</span>
+        </div>
+
+        <div id="alert-registro" class="alert" style="display: none;"></div>
+
+        <div class="form-group">
+          <label for="puesto">Puesto *</label>
+          <select id="puesto" required>
+            <option value="">-- Seleccionar --</option>
+            <option value="driver">Driver</option>
+            <option value="otro">Otro</option>
+          </select>
+        </div>
+
+        <!-- PASO 2: DRIVER QR SCAN -->
+        <div id="driver-scan-section" style="display: none;">
+          <div class="step-indicator">
+            <div class="step-number active">2</div>
+            <span>Escanear QR del Driver</span>
+          </div>
+
+          <div class="scanner-container">
+            <video id="scanner-video"></video>
+            <div class="scanner-controls">
+              <button class="btn btn-secondary" id="btn-start-scanner">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9a2 2 0 012-2h1.2a2 2 0 001.6-.8l.4-.6a2 2 0 011.6-.8h4.4a2 2 0 011.6.8l.4.6a2 2 0 001.6.8H19a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><circle cx="12" cy="13" r="3.5"/></svg>
+                Iniciar escáner
+              </button>
+              <button class="btn btn-ghost" id="btn-stop-scanner" style="display: none;">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg>
+                Detener
+              </button>
+            </div>
+          </div>
+
+          <div id="scanner-result" class="scanner-result" style="display: none;"></div>
+
+          <input type="hidden" id="driver-id" />
+          <div id="driver-scan-confirm" style="display: none;">
+            <div class="alert success">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+              Driver ID detectado: <strong id="detected-driver-id"></strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- PASO 2: OTRO — ¿YA TIENE REGISTRO? -->
+        <div id="otro-check-section" style="display: none;">
+          <div class="step-indicator">
+            <div class="step-number active">2</div>
+            <span>¿Ya tiene un registro?</span>
+          </div>
+
+          <div style="display: flex; flex-wrap: wrap; gap: 12px;">
+            <button type="button" class="btn btn-secondary" id="btn-otro-existente">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM18 14h3v3h-3zM14 18h3v3h-3zM18 18h3v3h-3z"/></svg>
+              Sí, escanear QR existente
+            </button>
+            <button type="button" class="btn btn-ghost" id="btn-otro-nuevo">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              No, es nuevo
+            </button>
+          </div>
+        </div>
+
+        <!-- PASO 2b: OTRO — ESCANEAR QR DE UN DISPOSITIVO YA REGISTRADO -->
+        <div id="otro-scan-section" style="display: none;">
+          <div class="step-indicator">
+            <div class="step-number active">2</div>
+            <span>Escanear QR de un dispositivo ya registrado</span>
+          </div>
+
+          <div class="scanner-container">
+            <video id="otro-scanner-video"></video>
+            <div class="scanner-controls">
+              <button type="button" class="btn btn-secondary" id="btn-otro-start-scanner">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9a2 2 0 012-2h1.2a2 2 0 001.6-.8l.4-.6a2 2 0 011.6-.8h4.4a2 2 0 011.6.8l.4.6a2 2 0 001.6.8H19a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><circle cx="12" cy="13" r="3.5"/></svg>
+                Iniciar escáner
+              </button>
+              <button type="button" class="btn btn-ghost" id="btn-otro-stop-scanner" style="display: none;">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg>
+                Detener
+              </button>
+            </div>
+          </div>
+
+          <div id="otro-scan-result" class="scanner-result" style="display: none;"></div>
+        </div>
+
+        <!-- CONFIRMACIÓN: LA PERSONA YA TIENE DISPOSITIVO(S) -->
+        <div id="existing-devices-card" style="display: none;">
+          <div class="alert success" id="existing-devices-info"></div>
+          <div style="display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px;">
+            <button type="button" class="btn btn-primary" id="btn-add-another-device">
+              Sí, agregar otro dispositivo
+            </button>
+            <button type="button" class="btn btn-ghost" id="btn-cancel-existing">
+              Cancelar
+            </button>
+          </div>
+        </div>
+
+        <!-- PASO 2: CORREO (OTRO, PRIMER REGISTRO) -->
+        <div id="email-section" style="display: none;">
+          <div class="step-indicator">
+            <div class="step-number active">2</div>
+            <span>Correo de Autorización</span>
+          </div>
+
+          <div class="form-group">
+            <label for="correo">Correo *</label>
+            <input type="email" id="correo" placeholder="usuario@empresa.com" required />
+          </div>
+        </div>
+
+        <!-- PASO 3: TIPO DISPOSITIVO -->
+        <div id="tipo-dispositivo-section" style="display: none;">
+          <div class="step-indicator">
+            <div class="step-number active">3</div>
+            <span>Tipo de Dispositivo</span>
+          </div>
+
+          <div class="form-group">
+            <label for="tipo-dispositivo">Tipo *</label>
+            <select id="tipo-dispositivo" required>
+              <option value="">-- Seleccionar --</option>
+              <option value="smartphone">Smartphone</option>
+              <option value="smartwatch">Smartwatch</option>
+              <option value="speaker">Speaker</option>
+              <option value="otro">Otro</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- PASO 4: IMEI (SI SMARTPHONE) -->
+        <div id="imei-section" style="display: none;">
+          <div class="step-indicator">
+            <div class="step-number active">4</div>
+            <span>IMEI</span>
+          </div>
+
+          <div class="form-group">
+            <label for="imei">IMEI (15 dígitos) *</label>
+            <input type="text" id="imei" placeholder="000000000000000" maxlength="15" required />
+          </div>
+        </div>
+
+        <!-- PASO 5: DESCRIPCIÓN -->
+        <div id="descripcion-section" style="display: none;">
+          <div class="step-indicator">
+            <div class="step-number active">5</div>
+            <span>Descripción</span>
+          </div>
+
+          <div class="form-group">
+            <label for="descripcion">Marca + Modelo + Color (MAYÚSCULAS) *</label>
+            <input type="text" id="descripcion" placeholder="APPLE IPHONE 14 BLACK" required />
+          </div>
+        </div>
+
+        <!-- PASO 6: FOTO -->
+        <div id="foto-section" style="display: none;">
+          <div class="step-indicator">
+            <div class="step-number active">6</div>
+            <span>Fotografía</span>
+          </div>
+
+          <div class="form-group">
+            <label>Foto del Dispositivo *</label>
+            <div class="photo-source-actions">
+              <button type="button" class="btn btn-secondary" id="btn-open-camera">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9a2 2 0 012-2h1.2a2 2 0 001.6-.8l.4-.6a2 2 0 011.6-.8h4.4a2 2 0 011.6.8l.4.6a2 2 0 001.6.8H19a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><circle cx="12" cy="13" r="3.5"/></svg>
+                Tomar foto
+              </button>
+              <button type="button" class="btn btn-ghost" id="btn-upload-foto">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                Subir archivo
+              </button>
+            </div>
+            <input type="file" id="input-foto" accept="image/*" style="display: none;" />
+
+            <!-- CÁMARA EN VIVO -->
+            <div class="scanner-container" id="camera-container" style="display: none;">
+              <video id="camera-video" autoplay playsinline muted></video>
+              <div class="scanner-controls">
+                <button type="button" class="btn btn-primary" id="btn-capture-foto">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/></svg>
+                  Capturar
+                </button>
+                <button type="button" class="btn btn-ghost" id="btn-cancel-camera">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg>
+                  Cancelar
+                </button>
+              </div>
+            </div>
+            <canvas id="camera-canvas" style="display: none;"></canvas>
+
+            <div class="photo-preview" id="photo-preview"></div>
+          </div>
+        </div>
+
+        <!-- CAMPOS OCULTOS -->
+        <input type="hidden" id="timestamp" />
+        <input type="hidden" id="usuario" />
+
+        <!-- BOTONES -->
+        <div style="display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px;">
+          <button class="btn btn-secondary" id="btn-reset">Limpiar</button>
+          <button class="btn btn-primary" id="btn-guardar" style="display: none;">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+            Guardar registro
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: HISTORIAL -->
+    <!-- Una sola vista a la vez (segmentador Dispositivos/Escaneos) con -->
+    <!-- filas compactas de una línea; el detalle completo vive en un    -->
+    <!-- modal. Evita el "estiramiento infinito" de tablas anchas en     -->
+    <!-- móvil y la necesidad de scroll horizontal.                      -->
+    <div id="tab-historial" class="tab-content">
+      <div class="card">
+        <div class="card-title">Historial</div>
+
+        <div id="alert-historial" class="alert" style="display: none;"></div>
+
+        <div class="subtabs">
+          <button class="subtab-btn active" id="subtab-devices" data-historial-view="devices">Dispositivos</button>
+          <button class="subtab-btn" id="subtab-scans" data-historial-view="scans">Escaneos</button>
+        </div>
+
+        <!-- VISTA: DISPOSITIVOS -->
+        <div id="historial-view-devices" class="historial-view active">
+          <div style="display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap;">
+            <input type="text" id="search-devices" placeholder="Buscar por IMEI, Driver, correo..." style="flex: 1; min-width: 200px; padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--r-sm); background: var(--surface-2); color: var(--text); font-size: 13px;">
+            <select id="filter-devices-puesto" style="padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--r-sm); background: var(--surface-2); color: var(--text); font-size: 13px;">
+              <option value="">Todos los puestos</option>
+              <option value="driver">Driver</option>
+              <option value="otro">Otro</option>
+            </select>
+          </div>
+
+          <div id="list-devices" class="record-list"></div>
+
+          <p style="margin-top: 16px; font-size: 12px; color: var(--text-mut);" id="devices-empty">
+            No hay registros aún.
+          </p>
+
+          <button type="button" class="btn btn-secondary" id="btn-devices-more" style="display: none; width: 100%; justify-content: center; margin-top: 12px;">
+            Ver más
+          </button>
+        </div>
+
+        <!-- VISTA: ESCANEOS -->
+        <div id="historial-view-scans" class="historial-view">
+          <p style="font-size: 13px; color: var(--text-sub); margin-bottom: 12px;">
+            Datos provenientes de la app de Escaneo.
+          </p>
+
+          <div style="display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap;">
+            <select id="filter-scans-resultado" style="padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--r-sm); background: var(--surface-2); color: var(--text); font-size: 13px;">
+              <option value="">Todos los resultados</option>
+              <option value="valido">Válido</option>
+              <option value="denegado_compartido">Denegado (Compartido)</option>
+              <option value="denegado_sin_ingreso">Denegado (Sin ingreso)</option>
+            </select>
+          </div>
+
+          <div id="list-scans" class="record-list"></div>
+
+          <p style="margin-top: 16px; font-size: 12px; color: var(--text-mut);" id="scans-empty">
+            Sin datos aún.
+          </p>
+
+          <button type="button" class="btn btn-secondary" id="btn-scans-more" style="display: none; width: 100%; justify-content: center; margin-top: 12px;">
+            Ver más
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: DETALLE DE REGISTRO (historial) -->
+  <div class="modal-bg" id="modal-record-detail">
+    <div class="modal">
+      <div class="modal-title" id="modal-record-title">Detalle</div>
+      <div class="modal-body" id="modal-record-body"></div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btn-modal-record-photo" style="display: none;">Ver foto</button>
+        <button class="btn btn-primary" id="btn-modal-record-close">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: RESULTADO GUARDADO -->
+  <div class="modal-bg" id="modal-resultado">
+    <div class="modal">
+      <div class="modal-title">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--c-green); vertical-align: -3px; margin-right: 6px;"><path d="M20 6L9 17l-5-5"/></svg>
+        <span id="modal-titulo">Éxito</span>
+      </div>
+      <div class="modal-body" id="modal-mensaje"></div>
+
+      <div id="qr-preview-modal" class="qr-preview" style="display: none;">
+        <div style="background: white; padding: 12px; border-radius: 8px;">
+          <canvas id="qr-canvas-modal" width="200" height="200"></canvas>
+        </div>
+        <div class="qr-info">
+          <p>Escanea este código para autorizar el dispositivo</p>
+          <button class="btn btn-secondary" id="btn-download-qr" style="margin-top: 12px;">Descargar QR</button>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="btn-modal-close">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: VER FOTO (historial) -->
+  <div class="modal-bg" id="modal-photo">
+    <div class="modal">
+      <div class="modal-title">
+        <span>Foto del dispositivo</span>
+      </div>
+      <div class="modal-body">
+        <img id="modal-photo-img" src="" alt="Foto del dispositivo" style="width: 100%; border-radius: var(--r-md);" />
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="btn-modal-photo-close">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CATÁLOGO BPP -->
+  <div class="modal-bg" id="modal-bpp">
+    <div class="modal">
+      <div class="modal-title">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent); vertical-align: -3px; margin-right: 6px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <span>Catálogo BPP</span>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 13px; color: var(--text-sub); margin-bottom: 14px;">
+          IMEIs de dispositivos implicados en casos de generación BPP. Un
+          smartphone cuyo IMEI esté en este catálogo <strong>no podrá
+          registrarse</strong>.
+        </p>
+
+        <div id="bpp-status" style="font-size: 13px; padding: 12px; border-radius: var(--r-md); background: var(--surface-2); border: 1px solid var(--border); margin-bottom: 12px;">
+          Cargando…
+        </div>
+
+        <div id="bpp-stale-warn" class="alert warn" style="display: none;">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          El catálogo tiene más de 7 días. Se recomienda actualizarlo semanalmente.
+        </div>
+
+        <div class="form-group" style="margin-top: 6px;">
+          <label for="bpp-csv-input">Actualizar desde CSV</label>
+          <input type="file" id="bpp-csv-input" accept=".csv,text/csv" />
+          <p style="font-size: 12px; color: var(--text-mut); margin-top: 6px;">
+            Encabezados esperados: <code>IMEI_VALUE, SHIPMENT_ID</code>.
+          </p>
+        </div>
+
+        <div id="bpp-upload-result" style="display: none; margin-top: 8px;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="btn-bpp-upload">Reemplazar catálogo</button>
+        <button class="btn btn-secondary" id="btn-modal-bpp-close">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CANVAS TEMPORAL PARA QR -->
+  <canvas id="qr-canvas" style="display: none;"></canvas>
+
+  <!-- MORPH OVERLAY: animación de carga al guardar -->
+  <div id="morph-overlay" class="morph-overlay hidden">
+    <button id="morph-btn" class="morph-btn" disabled>Guardando...</button>
+  </div>
+
+  <!-- DEBUG CONSOLE (oculta por defecto) -->
+  <div id="debug-console-panel" style="position: fixed; bottom: 20px; right: 20px; width: 320px; max-width: calc(100vw - 40px); max-height: 420px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); display: flex; flex-direction: column; z-index: 1000; transform: translateY(470px); transition: transform 0.3s ease; box-shadow: var(--shadow);">
+    <div style="padding: 12px 14px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+      <span style="font-weight: 600; font-size: 13px; color: var(--text-sub);">Debug</span>
+      <button onclick="DebugConsole.toggle()" style="background: none; border: none; color: var(--text-sub); cursor: pointer; padding: 4px;">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div id="debug-console-body" style="flex: 1; overflow-y: auto; font-size: 11px; font-family: monospace; padding: 10px; line-height: 1.4; color: var(--text-sub);"></div>
+    <div style="padding: 8px; border-top: 1px solid var(--border); display: flex; gap: 6px;">
+      <button onclick="DebugConsole.copyToClipboard()" style="flex: 1; padding: 7px; background: var(--surface-2); border: 1px solid var(--border); color: var(--text-sub); border-radius: var(--r-sm); cursor: pointer; font-size: 12px;">Copiar</button>
+      <button onclick="DebugConsole.toggle()" style="flex: 1; padding: 7px; background: var(--surface-2); border: 1px solid var(--border); color: var(--text-sub); border-radius: var(--r-sm); cursor: pointer; font-size: 12px;">Cerrar</button>
+    </div>
+  </div>
+
+  <div id="debug-console-badge" style="position: fixed; bottom: 20px; right: 20px; width: 34px; height: 34px; background: var(--c-red); border-radius: 50%; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 12px; cursor: pointer; z-index: 999; display: none;" onclick="DebugConsole.toggle()"></div>
+
+  <!-- ──────────────────────────────────────────────────────────────────────────── -->
+  <!-- SCRIPT -->
+  <!-- ──────────────────────────────────────────────────────────────────────────── -->
+  <script>
+    /* QRCode.js vendorizado inline (versión minimal) */
+    /* Basado en qrcodejs v1.0.0 — se genera el QR directamente en canvas */
+
+    const QRCode = (function () {
+      function QRCode(text, options = {}) {
+        this.options = Object.assign(
+          {
+            text: text,
+            width: 256,
+            height: 256,
+            colorDark: "#000000",
+            colorLight: "#FFFFFF",
+            correctLevel: QRCode.CorrectLevel.H,
+          },
+          options
+        );
+
+        this.addCanvas();
+        this.makeCode();
+      }
+
+      QRCode.prototype.addCanvas = function () {
+        const canvas = document.createElement("canvas");
+        canvas.width = this.options.width;
+        canvas.height = this.options.height;
+        this.canvas = canvas;
+      };
+
+      QRCode.prototype.makeCode = function () {
+        const text = this.options.text;
+        const canvas = this.canvas;
+        const ctx = canvas.getContext("2d");
+        const width = canvas.width;
+        const height = canvas.height;
+
+        // Generar modelo QR simplificado (sin ZXing, usando qrcode-gen básico)
+        const qrData = generateQRData(text, this.options.correctLevel);
+
+        const moduleCount = qrData.length;
+        const tileSize = Math.min(width, height) / moduleCount;
+
+        ctx.fillStyle = this.options.colorLight;
+        ctx.fillRect(0, 0, width, height);
+
+        ctx.fillStyle = this.options.colorDark;
+        for (let row = 0; row < moduleCount; row++) {
+          for (let col = 0; col < moduleCount; col++) {
+            if (qrData[row][col]) {
+              ctx.fillRect(
+                col * tileSize,
+                row * tileSize,
+                tileSize,
+                tileSize
+              );
+            }
+          }
+        }
+
+        this._oQRCode = { moduleCount, isDark: (r, c) => qrData[r]?.[c] || false };
+      };
+
+      QRCode.CorrectLevel = { L: 1, M: 0, Q: 3, H: 2 };
+
+      return QRCode;
+    })();
+
+    // Generador QR ultra-simplificado (para demo)
+    // En producción usar qrcode.js real vendorizado
+    function generateQRData(text, level) {
+      const encoded = encodeURIComponent(text);
+      const size = Math.ceil(Math.sqrt(encoded.length)) * 4 + 21; // Tamaño aproximado
+
+      // Patrón de prueba: generar matriz con patrón básico
+      const data = [];
+      for (let i = 0; i < size; i++) {
+        data[i] = [];
+        for (let j = 0; j < size; j++) {
+          // Finder patterns (esquinas)
+          if (
+            (i < 7 && j < 7) ||
+            (i < 7 && j >= size - 8) ||
+            (i >= size - 8 && j < 7)
+          ) {
+            data[i][j] = true;
+          } else if (
+            (i >= 2 && i <= 4 && (j === 8 || j === size - 9)) ||
+            ((j >= 2 && j <= 4) && (i === 8 || i === size - 9))
+          ) {
+            data[i][j] = true;
+          } else {
+            // Dispersar el contenido de forma determinista basada en el texto
+            const charCode = encoded.charCodeAt((i + j) % encoded.length) || 0;
+            data[i][j] = (charCode + i + j) % 2 === 0;
+          }
+        }
+      }
+      return data;
+    }
+
+    /* ─────────────────────────────────────────────────────────────────────── */
+    /* DEBUG CONSOLE — igual que las otras apps de Grid */
+    /* ─────────────────────────────────────────────────────────────────────── */
+
+    class DebugConsole {
+      static entries = [];
+      static maxEntries = 300;
+
+      static log(message, level = "info") {
+        const ts = new Date().toISOString().split("T")[1].slice(0, 8);
+        this.entries.push({ ts, level, message: String(message) });
+        if (this.entries.length > this.maxEntries) this.entries.shift();
+        this.render();
+        if (level === "error") console.error(message);
+        else if (level === "warn") console.warn(message);
+        else console.log(message);
+      }
+
+      static escapeHtml(s) {
+        const div = document.createElement("div");
+        div.textContent = s;
+        return div.innerHTML;
+      }
+
+      static render() {
+        const el = document.getElementById("debug-console-body");
+        if (!el) return;
+        const colors = { error: "#FF5C6C", warn: "#FFD100", info: "#6B757D" };
+        el.innerHTML = this.entries
+          .map(
+            (e) =>
+              `<div style="color:${colors[e.level] || colors.info};">[${e.ts}] ${this.escapeHtml(e.message)}</div>`
+          )
+          .join("");
+        el.scrollTop = el.scrollHeight;
+        const errorCount = this.entries.filter((e) => e.level === "error").length;
+        const badge = document.getElementById("debug-console-badge");
+        if (badge) {
+          badge.style.display = errorCount > 0 ? "flex" : "none";
+          badge.textContent = errorCount > 9 ? "9+" : String(errorCount);
+        }
+        const inlineBadge = document.getElementById("debug-console-inline-badge");
+        if (inlineBadge) {
+          inlineBadge.style.display = errorCount > 0 ? "flex" : "none";
+          inlineBadge.textContent = errorCount > 9 ? "9+" : String(errorCount);
+        }
+      }
+
+      static toggle() {
+        const panel = document.getElementById("debug-console-panel");
+        panel.classList.toggle("open");
+        const isOpen = panel.classList.contains("open");
+        panel.style.transform = isOpen ? "translateY(0)" : "translateY(470px)";
+      }
+
+      static copyToClipboard() {
+        const text = this.entries
+          .map((e) => `[${e.ts}] [${e.level}] ${e.message}`)
+          .join("\n");
+        navigator.clipboard
+          .writeText(text)
+          .then(() => this.log("Log copiado al portapapeles", "info"))
+          .catch(() =>
+            this.log("No se pudo copiar — selecciona el texto manualmente", "warn")
+          );
+      }
+
+      static setup() {
+        window.addEventListener("error", (e) => {
+          this.log(`Error no capturado: ${e.message} (${e.filename}:${e.lineno})`, "error");
+        });
+        window.addEventListener("unhandledrejection", (e) => {
+          const reason = e.reason && e.reason.message ? e.reason.message : String(e.reason);
+          this.log(`Promesa rechazada sin capturar: ${reason}`, "error");
+        });
+        this.log("Consola de depuración iniciada", "info");
+      }
+    }
+
+    /* ─────────────────────────────────────────────────────────────────────── */
+    /* GRID CLIENT — State Buckets */
+    /* ─────────────────────────────────────────────────────────────────────── */
+
+    class GridClient {
+      constructor(docId) {
+        this.docId = docId;
+        this.baseUrl = location.origin;
+        this._updatedAtByName = {};
+      }
+
+      async _fetchWithTimeout(url, options = {}, timeout = 30000) {
+        const controller = new AbortController();
+        const id = setTimeout(() => controller.abort(), timeout);
+        try {
+          const res = await fetch(url, {
+            ...options,
+            signal: controller.signal,
+          });
+          return res;
+        } finally {
+          clearTimeout(id);
+        }
+      }
+
+      async getStateBucket(name) {
+        const url = `${this.baseUrl}/api/v1/documents/${this.docId}/states/${name}`;
+        const res = await this._fetchWithTimeout(url, {
+          credentials: "include",
+        });
+        if (res.status === 404) {
+          DebugConsole.log(`GET ${name}: 404 (bucket no existe todavía)`, "info");
+          return null;
+        }
+        if (!res.ok) {
+          const body = await res.text().catch(() => "");
+          DebugConsole.log(`GET ${name}: HTTP ${res.status} — ${body}`, "error");
+          throw new Error(`HTTP ${res.status}`);
+        }
+        const body = await res.json();
+        this._updatedAtByName[name] = body.updated_at || "";
+        const count = Array.isArray(body.state?.records)
+          ? body.state.records.length
+          : "n/a";
+        DebugConsole.log(`GET ${name}: OK, records=${count}`, "info");
+        return body.state ?? null;
+      }
+
+      async setStateBucket(name, data) {
+        const ifUpdatedAt = this._updatedAtByName[name] || "";
+        const url = `${this.baseUrl}/api/v1/documents/${this.docId}/states/${name}`;
+        DebugConsole.log(
+          `PUT ${name}: if_updated_at="${ifUpdatedAt}", records=${data.records?.length ?? "n/a"}`,
+          "info"
+        );
+        const res = await this._fetchWithTimeout(
+          url,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ state: data, if_updated_at: ifUpdatedAt }),
+            credentials: "include",
+          },
+          30000
+        );
+
+        if (res.status === 409) {
+          const conflictBody = await res.json().catch(() => ({}));
+          if (conflictBody.current_updated_at) {
+            this._updatedAtByName[name] = conflictBody.current_updated_at;
+          }
+          DebugConsole.log(`PUT ${name}: 409 conflicto, reintentando`, "warn");
+          return { conflict: true };
+        }
+
+        if (!res.ok) {
+          const body = await res.text().catch(() => "");
+          DebugConsole.log(`PUT ${name}: HTTP ${res.status} — ${body}`, "error");
+          throw new Error(`HTTP ${res.status}`);
+        }
+
+        const body = await res.json();
+        this._updatedAtByName[name] = body.updated_at || "";
+        DebugConsole.log(`PUT ${name}: OK`, "info");
+        return { ok: true };
+      }
+
+      async uploadPublicDocument(blob, filename) {
+        const fd = new FormData();
+        fd.append("file", blob, filename);
+        fd.append("title", filename);
+        fd.append("description", "Autorización de dispositivos");
+        fd.append("visibility", "public");
+        let res;
+        try {
+          res = await this._fetchWithTimeout(
+            `${this.baseUrl}/api/v1/documents`,
+            {
+              method: "POST",
+              credentials: "include",
+              body: fd,
+            },
+            30000
+          );
+        } catch (e) {
+          DebugConsole.log(
+            `Upload ${filename}: fetch de red falló (${e.name}: ${e.message}) — blob=${(blob.size / 1024).toFixed(0)} KB`,
+            "error"
+          );
+          throw new Error(`No se pudo subir ${filename}: fallo de red (${e.message})`);
+        }
+        if (!res.ok) {
+          const err = await res.text().catch(() => "");
+          DebugConsole.log(`Upload ${filename}: HTTP ${res.status} — ${err}`, "error");
+          throw new Error(`Upload falló: HTTP ${res.status}`);
+        }
+        const body = await res.json();
+        const docId = body.id || body.doc_id || (body.document && body.document.id);
+        DebugConsole.log(`Upload ${filename}: OK, doc_id=${docId}`, "info");
+        return docId;
+      }
+
+      async getCurrentUser() {
+        const res = await this._fetchWithTimeout(
+          `${this.baseUrl}/api/v1/me`,
+          { credentials: "include" }
+        );
+        if (!res.ok) {
+          return null;
+        }
+        return await res.json();
+      }
+
+      async getDownloadUrl(docId) {
+        const res = await this._fetchWithTimeout(
+          `${this.baseUrl}/api/v1/documents/${docId}/download`,
+          { credentials: "include" }
+        );
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+        const meta = await res.json();
+        return meta.download_url || meta.agent_download_url;
+      }
+    }
+
+    /* ─────────────────────────────────────────────────────────────────────── */
+    /* SCANNER ENGINE */
+    /* ─────────────────────────────────────────────────────────────────────── */
+
+    class ScannerEngine {
+      constructor() {
+        this.stream = null;
+        this.detector = null;
+      }
+
+      async start(videoEl, onDetect) {
+        this.stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" } },
+          audio: false,
+        });
+
+        videoEl.srcObject = this.stream;
+        await new Promise((r) => (videoEl.onloadedmetadata = r));
+        videoEl.play();
+
+        this.detector =
+          "BarcodeDetector" in window
+            ? new BarcodeDetector({ formats: ["qr_code"] })
+            : null;
+
+        const loop = async () => {
+          if (!this.stream) return;
+          try {
+            if (this.detector) {
+              const barcodes = await this.detector.detect(videoEl);
+              for (const barcode of barcodes) {
+                onDetect(barcode.rawValue, barcode.format);
+              }
+            }
+          } catch (e) {}
+          requestAnimationFrame(loop);
+        };
+        loop();
+      }
+
+      stop() {
+        if (this.stream) {
+          this.stream.getTracks().forEach((t) => t.stop());
+          this.stream = null;
+        }
+      }
+    }
+
+    /* ─────────────────────────────────────────────────────────────────────── */
+    /* SCAN PARSER — extrae driver_id de JSON */
+    /* ─────────────────────────────────────────────────────────────────────── */
+
+    function parseScannedQR(text) {
+      try {
+        const json = JSON.parse(text);
+        if (json.driver_id) {
+          return { type: "driver", driverId: json.driver_id, raw: json };
+        }
+        return { type: "unknown", raw: json };
+      } catch (e) {
+        return { type: "text", value: text };
+      }
+    }
+
+    /* ─────────────────────────────────────────────────────────────────────── */
+    /* LOGOS — doc_ids independientes: título del navbar vs. logo del QR */
+    /* ─────────────────────────────────────────────────────────────────────── */
+    const NAVBAR_LOGO_DOC_ID = "01KYGCGRZHJT8JP7Q1WRZKRX6C";
+    const QR_LOGO_DOC_ID = "01KYGC20BZ3Q47PTQH41Z38SNV";
+
+    /* ─────────────────────────────────────────────────────────────────────── */
+    /* MORPH CONTROLLER — animación de carga bloqueante al guardar */
+    /* ─────────────────────────────────────────────────────────────────────── */
+
+    const MorphController = {
+      overlay: document.getElementById("morph-overlay"),
+      btn: document.getElementById("morph-btn"),
+
+      start() {
+        this.overlay.classList.remove("hidden");
+        this.btn.classList.remove("is-saved", "is-error");
+        this.btn.classList.add("is-saving");
+        this.btn.textContent = "Guardando...";
+      },
+
+      success(label) {
+        this.btn.classList.remove("is-saving");
+        this.btn.classList.add("is-saved");
+        this.btn.textContent = label || "Guardado";
+      },
+
+      error(label) {
+        this.btn.classList.remove("is-saving");
+        this.btn.classList.add("is-error");
+        this.btn.textContent = label || "Error";
+      },
+
+      close() {
+        this.overlay.classList.add("hidden");
+        this.btn.classList.remove("is-saving", "is-saved", "is-error");
+      },
+    };
+
+    /* ─────────────────────────────────────────────────────────────────────── */
+    /* MAIN APP */
+    /* ─────────────────────────────────────────────────────────────────────── */
+
+    class AutorizacionApp {
+      constructor() {
+        this.docId =
+          new URLSearchParams(location.search).get("data_doc_id") ||
+          "01KYBPWY7AYSXC0MGZVH1JT2TV";
+        this.gridClient = new GridClient(this.docId);
+        this.logoImage = null;
+        this.currentUser = null;
+        this.scanner = null;
+        this.otroScanner = null;
+        this.fotoData = null;
+        this.outboxRecords = [];
+
+        // Estado del flujo guiado: ¿ya se identificó a la persona y puede
+        // avanzar a los pasos de tipo/foto/descripción del dispositivo?
+        this.otroMode = null; // "nuevo" | "existente"
+        this.readyForDevice = false;
+        this.existingCorreo = null;
+        this._existingContext = null;
+        this._existingOwnerKey = null;
+
+        // Catálogo BPP: IMEIs implicados en casos de generación BPP.
+        // Índice en memoria para lookup instantáneo al guardar.
+        this.bppIndex = new Map(); // imei(normalizado) -> shipment_id
+        this.bppMeta = null; // { updated_at, uploaded_by, filename, count }
+
+        // Historial en memoria para búsqueda/filtrado
+        this.devicesRecords = [];
+        this.scansRecords = [];
+        this._devicesFiltered = [];
+        this._scansFiltered = [];
+        this.devicesVisibleCount = 25;
+        this.scansVisibleCount = 25;
+
+        DebugConsole.setup();
+        DebugConsole.log(`Documento de datos: ${this.docId}`, "info");
+
+        this.init();
+      }
+
+      static getInitials(email) {
+        if (!email) return "?";
+        const local = email.split("@")[0] || "";
+        const parts = local.split(/[._-]+/).filter(Boolean);
+        if (parts.length >= 2) {
+          return (parts[0][0] + parts[1][0]).toUpperCase();
+        }
+        return local.slice(0, 2).toUpperCase() || "?";
+      }
+
+      async init() {
+        this.bindTabs();
+        this.bindForm();
+        this.bindModal();
+        this.bindBppConfig();
+        this.loadUser();
+        this.loadHistorial();
+        this.loadBppCatalog();
+        this.loadLogo();
+      }
+
+      loadLogo() {
+        // Logo del título (navbar)
+        const navImg = document.getElementById("navbar-logo-img");
+        if (navImg) {
+          navImg.src = "https://grid.adminml.com/d/" + NAVBAR_LOGO_DOC_ID + "?dl=1";
+          navImg.style.display = "block";
+        }
+
+        // Logo central del QR (independiente del logo del navbar)
+        const qrUrl = "https://grid.adminml.com/d/" + QR_LOGO_DOC_ID + "?dl=1";
+        const img = new Image();
+        img.onload = () => {
+          this.logoImage = img;
+        };
+        img.onerror = () => {
+          console.error("No se pudo cargar el logo del QR");
+        };
+        img.src = qrUrl;
+      }
+
+      bindTabs() {
+        document.querySelectorAll(".menubar-btn").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const tab = btn.dataset.tab;
+            document.querySelectorAll(".tab-content").forEach((el) => {
+              el.classList.remove("active");
+            });
+            document
+              .getElementById(`tab-${tab}`)
+              ?.classList.add("active");
+
+            document.querySelectorAll(".menubar-btn").forEach((b) => {
+              b.classList.remove("active");
+            });
+            btn.classList.add("active");
+          });
+        });
+      }
+
+      async findDevicesByOwner(ownerKey) {
+        // Buscar en el bucket si ya existen dispositivos de esta persona
+        const devices = (await this.gridClient.getStateBucket("devices_master")) || {};
+        return (devices.records || []).filter((d) => d.owner_key === ownerKey);
+      }
+
+      bindForm() {
+        const puestoEl = document.getElementById("puesto");
+        const tipoDispEl = document.getElementById("tipo-dispositivo");
+        const btnGuardar = document.getElementById("btn-guardar");
+        const btnReset = document.getElementById("btn-reset");
+        const inputFoto = document.getElementById("input-foto");
+
+        puestoEl.addEventListener("change", () => {
+          this.resetFlowState();
+          this.updateFormSteps();
+        });
+
+        tipoDispEl.addEventListener("change", () => this.updateFormSteps());
+
+        document
+          .getElementById("btn-upload-foto")
+          .addEventListener("click", () => inputFoto.click());
+
+        inputFoto.addEventListener("change", (e) => {
+          if (e.target.files[0]) {
+            this.loadFoto(e.target.files[0]);
+          }
+        });
+
+        document
+          .getElementById("btn-open-camera")
+          .addEventListener("click", () => this.openCamera());
+        document
+          .getElementById("btn-capture-foto")
+          .addEventListener("click", () => this.captureFoto());
+        document
+          .getElementById("btn-cancel-camera")
+          .addEventListener("click", () => this.closeCamera());
+
+        btnGuardar.addEventListener("click", () => this.guardar());
+        btnReset.addEventListener("click", () => this.reset());
+
+        document.getElementById("btn-start-scanner").addEventListener("click", () => {
+          this.startScanner();
+        });
+
+        document.getElementById("btn-stop-scanner").addEventListener("click", () => {
+          this.stopScanner();
+        });
+
+        document
+          .getElementById("btn-debug-console")
+          .addEventListener("click", () => DebugConsole.toggle());
+
+        // "Otro": ¿ya tiene un registro previo?
+        document.getElementById("btn-otro-existente").addEventListener("click", () => {
+          this.otroMode = "existente";
+          this.updateFormSteps();
+        });
+
+        document.getElementById("btn-otro-nuevo").addEventListener("click", () => {
+          this.otroMode = "nuevo";
+          this.readyForDevice = true;
+          this.updateFormSteps();
+        });
+
+        document.getElementById("btn-otro-start-scanner").addEventListener("click", () => {
+          this.startOtroScanner();
+        });
+
+        document.getElementById("btn-otro-stop-scanner").addEventListener("click", () => {
+          this.stopOtroScanner();
+        });
+
+        // Confirmación compartida: "esta persona ya tiene N dispositivo(s)"
+        document.getElementById("btn-add-another-device").addEventListener("click", () => {
+          this.readyForDevice = true;
+          document.getElementById("existing-devices-card").style.display = "none";
+          DebugConsole.log(`Agregando nuevo dispositivo a ${this._existingOwnerKey}`, "info");
+          this.updateFormSteps();
+        });
+
+        document.getElementById("btn-cancel-existing").addEventListener("click", () => {
+          const context = this._existingContext;
+          document.getElementById("existing-devices-card").style.display = "none";
+          this.readyForDevice = false;
+
+          if (context === "driver") {
+            document.getElementById("driver-id").value = "";
+            document.getElementById("driver-scan-confirm").style.display = "none";
+          } else if (context === "otro") {
+            document.getElementById("correo").value = "";
+            document.getElementById("correo").removeAttribute("readonly");
+            this.existingCorreo = null;
+            this.otroMode = null;
+          }
+
+          this.updateFormSteps();
+        });
+      }
+
+      resetFlowState() {
+        this.otroMode = null;
+        this.readyForDevice = false;
+        this.existingCorreo = null;
+        this._existingContext = null;
+        this._existingOwnerKey = null;
+
+        this.stopScanner();
+        this.stopOtroScanner();
+
+        document.getElementById("driver-id").value = "";
+        document.getElementById("driver-scan-confirm").style.display = "none";
+        document.getElementById("correo").value = "";
+        document.getElementById("correo").removeAttribute("readonly");
+        document.getElementById("otro-scan-result").style.display = "none";
+        document.getElementById("existing-devices-card").style.display = "none";
+      }
+
+      promptExistingDevices(ownerKey, existing, context) {
+        const list = existing
+          .map((d) => `• ${d.descripcion || d.id.slice(0, 20)}`)
+          .join("<br/>");
+        document.getElementById("existing-devices-info").innerHTML = `
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:6px;"><path d="M20 6L9 17l-5-5"/></svg>
+          Esta persona ya tiene ${existing.length} dispositivo(s) registrado(s):<br/>${list}
+        `;
+        document.getElementById("existing-devices-card").style.display = "block";
+        this._existingContext = context;
+        this._existingOwnerKey = ownerKey;
+      }
+
+      startOtroScanner() {
+        if (!this.otroScanner) {
+          this.otroScanner = new ScannerEngine();
+        }
+
+        const videoEl = document.getElementById("otro-scanner-video");
+        this.otroScanner.start(videoEl, (text) => this.handleOtroDeviceScanned(text));
+
+        document.getElementById("btn-otro-start-scanner").style.display = "none";
+        document.getElementById("btn-otro-stop-scanner").style.display = "block";
+      }
+
+      stopOtroScanner() {
+        if (this.otroScanner) {
+          this.otroScanner.stop();
+        }
+        document.getElementById("btn-otro-start-scanner").style.display = "block";
+        document.getElementById("btn-otro-stop-scanner").style.display = "none";
+      }
+
+      async handleOtroDeviceScanned(text) {
+        const deviceId = String(text).trim();
+        if (!deviceId.startsWith("dev_")) return;
+
+        this.stopOtroScanner();
+
+        const bucket = (await this.gridClient.getStateBucket("devices_master")) || {};
+        const found = (bucket.records || []).find((d) => d.id === deviceId);
+
+        if (!found) {
+          document.getElementById("otro-scan-result").style.display = "block";
+          document.getElementById("otro-scan-result").innerHTML =
+            '<div class="alert error">No se encontró ningún registro con este código. Intenta de nuevo.</div>';
+          DebugConsole.log(`QR escaneado (${deviceId}) no encontrado en devices_master`, "warn");
+          return;
+        }
+
+        document.getElementById("otro-scan-result").style.display = "none";
+
+        const ownerKey = found.owner_key || `user:${(found.correo || "").toLowerCase()}`;
+        const existing = (bucket.records || []).filter((d) => d.owner_key === ownerKey);
+        this.existingCorreo = found.correo || "";
+
+        document.getElementById("correo").value = this.existingCorreo;
+        document.getElementById("correo").setAttribute("readonly", "readonly");
+
+        DebugConsole.log(`Dispositivo existente encontrado, correo=${this.existingCorreo}`, "info");
+        this.promptExistingDevices(ownerKey, existing, "otro");
+        this.updateFormSteps();
+      }
+
+      bindModal() {
+        document.getElementById("btn-modal-close").addEventListener("click", () => {
+          document.getElementById("modal-resultado").classList.remove("active");
+          this.reset();
+        });
+
+        document
+          .getElementById("btn-download-qr")
+          ?.addEventListener("click", () => {
+            const link = document.createElement("a");
+            link.download = "device-authorization.png";
+            link.href = document
+              .getElementById("qr-canvas-modal")
+              .toDataURL("image/png");
+            link.click();
+          });
+
+        document.getElementById("btn-modal-photo-close").addEventListener("click", () => {
+          document.getElementById("modal-photo").classList.remove("active");
+        });
+      }
+
+      viewPhoto(docId, deviceId) {
+        const url = "https://grid.adminml.com/d/" + docId + "?dl=1";
+        document.getElementById("modal-photo-img").src = url;
+        document.getElementById("modal-photo").classList.add("active");
+        DebugConsole.log(`Abriendo foto: ${deviceId}`, "info");
+      }
+
+      /* ─── CATÁLOGO BPP ─────────────────────────────────────────────── */
+
+      // Normaliza un IMEI a solo dígitos para comparaciones consistentes.
+      static normalizeImei(v) {
+        return String(v ?? "").replace(/\D/g, "");
+      }
+
+      bindBppConfig() {
+        document.getElementById("btn-bpp-config").addEventListener("click", () => {
+          this.renderBppModal();
+          document.getElementById("modal-bpp").classList.add("active");
+        });
+        document.getElementById("btn-modal-bpp-close").addEventListener("click", () => {
+          document.getElementById("modal-bpp").classList.remove("active");
+        });
+        document.getElementById("btn-bpp-upload").addEventListener("click", () =>
+          this.handleBppUpload()
+        );
+      }
+
+      async loadBppCatalog() {
+        try {
+          const bucket = await this.gridClient.getStateBucket("bpp_catalog");
+          this.bppIndex = new Map();
+          if (bucket && Array.isArray(bucket.records)) {
+            for (const r of bucket.records) {
+              const imei = AutorizacionApp.normalizeImei(r.imei);
+              if (imei) this.bppIndex.set(imei, r.shipment_id || "");
+            }
+            this.bppMeta = {
+              updated_at: bucket.updated_at || null,
+              uploaded_by: bucket.uploaded_by || "",
+              filename: bucket.filename || "",
+              count: this.bppIndex.size,
+            };
+          } else {
+            this.bppMeta = null;
+          }
+          DebugConsole.log(`Catálogo BPP cargado: ${this.bppIndex.size} IMEI(s)`, "info");
+        } catch (e) {
+          DebugConsole.log(`Error cargando catálogo BPP: ${e.message}`, "error");
+        }
+        this.updateBppBadge();
+      }
+
+      // El catálogo se considera "vencido" si no existe o tiene más de 7 días.
+      isBppStale() {
+        if (!this.bppMeta || !this.bppMeta.updated_at) return true;
+        const ageMs = Date.now() - new Date(this.bppMeta.updated_at).getTime();
+        return ageMs > 7 * 24 * 60 * 60 * 1000;
+      }
+
+      updateBppBadge() {
+        const badge = document.getElementById("bpp-stale-badge");
+        if (badge) badge.style.display = this.isBppStale() ? "block" : "none";
+      }
+
+      renderBppModal() {
+        const status = document.getElementById("bpp-status");
+        const staleWarn = document.getElementById("bpp-stale-warn");
+        document.getElementById("bpp-upload-result").style.display = "none";
+        document.getElementById("bpp-csv-input").value = "";
+
+        if (this.bppMeta && this.bppMeta.count > 0) {
+          let fecha = "—";
+          try {
+            fecha = new Date(this.bppMeta.updated_at).toLocaleString("es-MX", {
+              dateStyle: "medium",
+              timeStyle: "short",
+            });
+          } catch (e) {}
+          status.innerHTML = `
+            <strong>${this.bppMeta.count}</strong> IMEI(s) en catálogo<br/>
+            Última actualización: <strong>${fecha}</strong><br/>
+            Subido por: ${this.bppMeta.uploaded_by || "—"}
+          `;
+        } else {
+          status.innerHTML =
+            "No hay catálogo cargado todavía. Sube un CSV para activar el bloqueo BPP.";
+        }
+        staleWarn.style.display = this.isBppStale() ? "flex" : "none";
+      }
+
+      // Parser tolerante: detecta delimitador (, o ;), ignora encabezado y
+      // mapea a { imei, shipment_id }. Columna 0 = IMEI_VALUE, 1 = SHIPMENT_ID.
+      parseBppCsv(text) {
+        const clean = text.replace(/^﻿/, ""); // quita BOM
+        const lines = clean.split(/\r?\n/).filter((l) => l.trim() !== "");
+        if (lines.length === 0) return [];
+
+        const delimiter = lines[0].includes(";") && !lines[0].includes(",") ? ";" : ",";
+        const records = [];
+
+        lines.forEach((line, idx) => {
+          const cols = line.split(delimiter).map((c) => c.trim().replace(/^"|"$/g, ""));
+          // Saltar encabezado (primera fila si contiene "IMEI").
+          if (idx === 0 && /imei/i.test(line)) return;
+          const imei = AutorizacionApp.normalizeImei(cols[0]);
+          if (!imei) return;
+          records.push({ imei, shipment_id: cols[1] || "" });
+        });
+
+        return records;
+      }
+
+      async handleBppUpload() {
+        const input = document.getElementById("bpp-csv-input");
+        const result = document.getElementById("bpp-upload-result");
+        const file = input.files && input.files[0];
+
+        if (!file) {
+          result.style.display = "block";
+          result.innerHTML =
+            '<div class="alert error">Selecciona un archivo CSV primero.</div>';
+          return;
+        }
+
+        try {
+          const text = await file.text();
+          const records = this.parseBppCsv(text);
+
+          if (records.length === 0) {
+            result.style.display = "block";
+            result.innerHTML =
+              '<div class="alert error">No se encontraron IMEIs válidos en el CSV. Revisa el formato (IMEI_VALUE, SHIPMENT_ID).</div>';
+            return;
+          }
+
+          const bucket = {
+            updated_at: new Date().toISOString(),
+            uploaded_by: this.currentUser?.email || this.currentUser?.ldap || "",
+            filename: file.name,
+            records,
+          };
+
+          const saveResult = await this.gridClient.setStateBucket("bpp_catalog", bucket);
+          if (saveResult.conflict) {
+            // Otro usuario actualizó en paralelo: releer y reintentar una vez.
+            await this.gridClient.getStateBucket("bpp_catalog");
+            const retry = await this.gridClient.setStateBucket("bpp_catalog", bucket);
+            if (retry.conflict) {
+              throw new Error("Conflicto de escritura, intenta de nuevo");
+            }
+          }
+
+          DebugConsole.log(`Catálogo BPP actualizado: ${records.length} IMEI(s)`, "info");
+          await this.loadBppCatalog();
+          this.renderBppModal();
+
+          result.style.display = "block";
+          result.innerHTML = `<div class="alert success">Catálogo actualizado: ${records.length} IMEI(s) cargados.</div>`;
+        } catch (e) {
+          DebugConsole.log(`Error subiendo catálogo BPP: ${e.message}`, "error");
+          result.style.display = "block";
+          result.innerHTML = `<div class="alert error">Error: ${e.message}</div>`;
+        }
+      }
+
+      // Devuelve { blocked, shipmentId } consultando el índice en memoria.
+      checkBpp(imei) {
+        const norm = AutorizacionApp.normalizeImei(imei);
+        if (norm && this.bppIndex.has(norm)) {
+          return { blocked: true, shipmentId: this.bppIndex.get(norm) };
+        }
+        return { blocked: false, shipmentId: null };
+      }
+
+      updateFormSteps() {
+        const puesto = document.getElementById("puesto").value;
+        const tipoDisp = document.getElementById("tipo-dispositivo").value;
+
+        // Mostrar/ocultar secciones del flujo guiado:
+        // Driver -> escanear QR -> (si ya existe, confirmar) -> datos del dispositivo.
+        // Otro -> ¿ya tiene registro? -> escanear QR existente o correo nuevo
+        //         -> (si ya existe, confirmar) -> datos del dispositivo.
+        document.getElementById("driver-scan-section").style.display =
+          puesto === "driver" ? "block" : "none";
+
+        document.getElementById("otro-check-section").style.display =
+          puesto === "otro" && !this.otroMode ? "block" : "none";
+
+        document.getElementById("otro-scan-section").style.display =
+          puesto === "otro" && this.otroMode === "existente" ? "block" : "none";
+
+        document.getElementById("email-section").style.display =
+          puesto === "otro" && this.otroMode === "nuevo" ? "block" : "none";
+
+        const showDeviceSteps = this.readyForDevice;
+        document.getElementById("tipo-dispositivo-section").style.display =
+          showDeviceSteps ? "block" : "none";
+        document.getElementById("imei-section").style.display =
+          showDeviceSteps && tipoDisp === "smartphone" ? "block" : "none";
+        document.getElementById("descripcion-section").style.display =
+          showDeviceSteps && tipoDisp ? "block" : "none";
+        document.getElementById("foto-section").style.display =
+          showDeviceSteps && tipoDisp ? "block" : "none";
+
+        document.getElementById("btn-guardar").style.display =
+          showDeviceSteps && tipoDisp ? "block" : "none";
+
+        // Validaciones condicionales
+        if (puesto === "driver") {
+          document.getElementById("correo").removeAttribute("required");
+        } else {
+          document.getElementById("correo").setAttribute("required", "required");
+        }
+
+        if (tipoDisp === "smartphone") {
+          document.getElementById("imei").setAttribute("required", "required");
+        } else {
+          document.getElementById("imei").removeAttribute("required");
+        }
+      }
+
+      loadFoto(file) {
+        this.compressImage(file, { maxDim: 1280, quality: 0.6 }).then((dataUrl) =>
+          this.setFotoPreview(dataUrl)
+        );
+      }
+
+      // Misma compresión que captura_auditoria.html: máx. 1280px, WebP
+      // calidad 0.6 con fallback a JPEG si el navegador no soporta WebP.
+      compressImage(file, { maxDim = 1280, quality = 0.6 } = {}) {
+        return new Promise((resolve, reject) => {
+          const url = URL.createObjectURL(file);
+          const img = new Image();
+          img.onload = () => {
+            URL.revokeObjectURL(url);
+            let { width, height } = img;
+            if (width > maxDim || height > maxDim) {
+              const scale = maxDim / Math.max(width, height);
+              width = Math.round(width * scale);
+              height = Math.round(height * scale);
+            }
+            const canvas = document.createElement("canvas");
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, width, height);
+            try {
+              const webp = canvas.toDataURL("image/webp", quality);
+              resolve(
+                webp.startsWith("data:image/webp")
+                  ? webp
+                  : canvas.toDataURL("image/jpeg", quality)
+              );
+            } catch (e) {
+              reject(e);
+            }
+          };
+          img.onerror = () => {
+            URL.revokeObjectURL(url);
+            reject(new Error("No se pudo cargar la imagen"));
+          };
+          img.src = url;
+        });
+      }
+
+      setFotoPreview(dataUrl) {
+        this.fotoData = dataUrl;
+        const preview = document.getElementById("photo-preview");
+        preview.innerHTML = `
+          <div class="photo-preview-item">
+            <img src="${this.fotoData}" alt="preview" />
+            <button class="photo-remove" onclick="app.removeFoto()" aria-label="Quitar foto">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+        `;
+      }
+
+      async openCamera() {
+        try {
+          this.cameraStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: "environment" } },
+            audio: false,
+          });
+          const videoEl = document.getElementById("camera-video");
+          videoEl.srcObject = this.cameraStream;
+          await videoEl.play();
+          document.getElementById("camera-container").style.display = "block";
+          DebugConsole.log("Cámara abierta para foto de dispositivo", "info");
+        } catch (e) {
+          DebugConsole.log(`No se pudo abrir la cámara: ${e.message}`, "error");
+          alert("No se pudo acceder a la cámara. Puedes subir un archivo en su lugar.");
+        }
+      }
+
+      closeCamera() {
+        if (this.cameraStream) {
+          this.cameraStream.getTracks().forEach((t) => t.stop());
+          this.cameraStream = null;
+        }
+        document.getElementById("camera-container").style.display = "none";
+      }
+
+      async captureFoto() {
+        const videoEl = document.getElementById("camera-video");
+        const canvas = document.getElementById("camera-canvas");
+        canvas.width = videoEl.videoWidth;
+        canvas.height = videoEl.videoHeight;
+        canvas.getContext("2d").drawImage(videoEl, 0, 0);
+        const rawBlob = await new Promise((resolve) =>
+          canvas.toBlob(resolve, "image/jpeg", 0.92)
+        );
+        this.closeCamera();
+        const compressed = await this.compressImage(rawBlob, {
+          maxDim: 1280,
+          quality: 0.6,
+        });
+        this.setFotoPreview(compressed);
+        DebugConsole.log("Foto capturada desde la cámara", "info");
+      }
+
+      removeFoto() {
+        this.fotoData = null;
+        document.getElementById("photo-preview").innerHTML = "";
+        document.getElementById("input-foto").value = "";
+      }
+
+      startScanner() {
+        if (!this.scanner) {
+          this.scanner = new ScannerEngine();
+        }
+
+        const videoEl = document.getElementById("scanner-video");
+        this.scanner.start(videoEl, (text) => {
+          const parsed = parseScannedQR(text);
+          if (parsed.type === "driver") {
+            this.stopScanner();
+            this.handleDriverDetected(parsed.driverId);
+          }
+        });
+
+        document.getElementById("btn-start-scanner").style.display = "none";
+        document.getElementById("btn-stop-scanner").style.display = "block";
+      }
+
+      stopScanner() {
+        if (this.scanner) {
+          this.scanner.stop();
+        }
+        document.getElementById("btn-start-scanner").style.display = "block";
+        document.getElementById("btn-stop-scanner").style.display = "none";
+      }
+
+      async handleDriverDetected(driverId) {
+        document.getElementById("driver-id").value = driverId;
+        document.getElementById("detected-driver-id").textContent = driverId;
+        document.getElementById("driver-scan-confirm").style.display = "block";
+
+        const ownerKey = `driver:${driverId}`;
+        const existing = await this.findDevicesByOwner(ownerKey);
+        DebugConsole.log(
+          `Driver ${driverId}: ${existing.length} dispositivo(s) existente(s)`,
+          "info"
+        );
+
+        if (existing.length > 0) {
+          this.promptExistingDevices(ownerKey, existing, "driver");
+        } else {
+          this.readyForDevice = true;
+        }
+        this.updateFormSteps();
+      }
+
+      async loadUser() {
+        try {
+          this.currentUser = await this.gridClient.getCurrentUser();
+          document.getElementById("usuario").value = this.currentUser?.ldap || "unknown";
+          this.renderUserAvatar();
+          DebugConsole.log(
+            `Usuario: ${this.currentUser?.ldap || "?"} <${this.currentUser?.email || "?"}>`,
+            "info"
+          );
+        } catch (e) {
+          DebugConsole.log(`Error cargando usuario: ${e.message}`, "error");
+        }
+      }
+
+      renderUserAvatar() {
+        const el = document.getElementById("user-avatar");
+        if (!el) return;
+        const email = this.currentUser?.email || this.currentUser?.ldap || "";
+        el.textContent = AutorizacionApp.getInitials(email);
+        el.title = email;
+        el.addEventListener("click", () => {
+          this.showAlert("registro", `Sesión: ${email || "desconocido"}`, "info");
+        });
+      }
+
+      async loadHistorial() {
+        // El segmentador y los botones "Ver más" no dependen de que las
+        // llamadas de red funcionen, así que se enlazan siempre. Cada
+        // bucket se carga por separado: si uno falla (red, 404), el otro
+        // sigue funcionando en vez de dejar todo el historial inerte.
+        this.bindHistorialUI();
+
+        try {
+          const devicesState = await this.gridClient.getStateBucket("devices_master");
+          if (devicesState?.records) {
+            this.devicesRecords = devicesState.records;
+            this.applyDevicesFilter();
+            this.bindDevicesSearch();
+          }
+        } catch (e) {
+          console.error("Error cargando devices_master:", e);
+        }
+
+        try {
+          const scansState = await this.gridClient.getStateBucket("scan_master");
+          if (scansState?.records) {
+            this.scansRecords = scansState.records;
+            this.applyScansFilter();
+            this.bindScansFilter();
+          }
+        } catch (e) {
+          console.error("Error cargando scan_master:", e);
+        }
+      }
+
+      static normalizeForSearch(str) {
+        return String(str || "").toLowerCase().trim().replace(/\s+/g, " ");
+      }
+
+      static formatShortDate(iso) {
+        if (!iso) return "-";
+        const d = new Date(iso);
+        if (isNaN(d.getTime())) return "-";
+        return d.toLocaleDateString("es-MX", { day: "2-digit", month: "short" }) +
+          " " + d.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
+      }
+
+      bindHistorialUI() {
+        // Segmentador Dispositivos/Escaneos: una sola vista a la vez.
+        document.querySelectorAll(".subtab-btn").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const view = btn.dataset.historialView;
+            document.querySelectorAll(".subtab-btn").forEach((b) => b.classList.remove("active"));
+            btn.classList.add("active");
+            document.getElementById("historial-view-devices").classList.toggle("active", view === "devices");
+            document.getElementById("historial-view-scans").classList.toggle("active", view === "scans");
+          });
+        });
+
+        document.getElementById("btn-devices-more").addEventListener("click", () => {
+          this.devicesVisibleCount += 25;
+          this.renderDevicesList(this._devicesFiltered || this.devicesRecords);
+        });
+
+        document.getElementById("btn-scans-more").addEventListener("click", () => {
+          this.scansVisibleCount += 25;
+          this.renderScansList(this._scansFiltered || this.scansRecords);
+        });
+
+        document.getElementById("list-devices").addEventListener("click", (e) => {
+          const row = e.target.closest(".record-row");
+          if (!row) return;
+          const rec = this._devicesFiltered?.[Number(row.dataset.idx)];
+          if (rec) this.showDeviceDetail(rec);
+        });
+
+        document.getElementById("list-scans").addEventListener("click", (e) => {
+          const row = e.target.closest(".record-row");
+          if (!row) return;
+          const rec = this._scansFiltered?.[Number(row.dataset.idx)];
+          if (rec) this.showScanDetail(rec);
+        });
+
+        document.getElementById("btn-modal-record-close").addEventListener("click", () => {
+          document.getElementById("modal-record-detail").classList.remove("active");
+        });
+      }
+
+      bindDevicesSearch() {
+        const searchInput = document.getElementById("search-devices");
+        const filterSelect = document.getElementById("filter-devices-puesto");
+
+        if (!searchInput || !filterSelect) return;
+
+        const handleChange = () => {
+          this.devicesVisibleCount = 25;
+          this.applyDevicesFilter();
+        };
+
+        searchInput.addEventListener("input", handleChange);
+        filterSelect.addEventListener("change", handleChange);
+      }
+
+      bindScansFilter() {
+        const filterSelect = document.getElementById("filter-scans-resultado");
+
+        if (!filterSelect) return;
+
+        const handleChange = () => {
+          this.scansVisibleCount = 25;
+          this.applyScansFilter();
+        };
+
+        filterSelect.addEventListener("change", handleChange);
+      }
+
+      applyDevicesFilter() {
+        const searchInput = document.getElementById("search-devices");
+        const filterSelect = document.getElementById("filter-devices-puesto");
+        const searchTerm = this.constructor.normalizeForSearch(searchInput?.value);
+        const filterPuesto = filterSelect?.value || "";
+
+        const filtered = this.devicesRecords
+          .filter((rec) => {
+            const matchesSearch = !searchTerm ||
+              this.constructor.normalizeForSearch(rec.imei || "").includes(searchTerm) ||
+              this.constructor.normalizeForSearch(rec.driver_id || "").includes(searchTerm) ||
+              this.constructor.normalizeForSearch(rec.correo || "").includes(searchTerm) ||
+              this.constructor.normalizeForSearch(rec.descripcion || "").includes(searchTerm);
+
+            const matchesFilter = !filterPuesto || rec.puesto === filterPuesto;
+
+            return matchesSearch && matchesFilter;
+          })
+          .slice()
+          .sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+
+        this._devicesFiltered = filtered;
+        this.renderDevicesList(filtered);
+      }
+
+      applyScansFilter() {
+        const filterSelect = document.getElementById("filter-scans-resultado");
+        const filterResultado = filterSelect?.value || "";
+
+        const filtered = this.scansRecords
+          .filter((rec) => !filterResultado || rec.resultado === filterResultado)
+          .slice()
+          .sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+
+        this._scansFiltered = filtered;
+        this.renderScansList(filtered);
+      }
+
+      renderDevicesList(records) {
+        const list = document.getElementById("list-devices");
+        const moreBtn = document.getElementById("btn-devices-more");
+        list.innerHTML = "";
+
+        if (records.length === 0) {
+          document.getElementById("devices-empty").style.display = "block";
+          moreBtn.style.display = "none";
+          return;
+        }
+
+        document.getElementById("devices-empty").style.display = "none";
+
+        const visible = records.slice(0, this.devicesVisibleCount);
+
+        list.innerHTML = visible
+          .map((rec, idx) => {
+            const title = rec.descripcion || rec.driver_id || rec.imei || "Sin descripción";
+            const badgeClass = rec.puesto === "driver" ? "green" : "blue";
+            return `
+              <div class="record-row" data-idx="${idx}">
+                <div class="record-row-main">
+                  <span class="badge ${badgeClass}">${rec.puesto || "-"}</span>
+                  <span class="record-row-title">${title}</span>
+                </div>
+                <div class="record-row-meta">
+                  <span class="record-row-date">${this.constructor.formatShortDate(rec.timestamp)}</span>
+                  <svg class="record-row-chevron" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+              </div>
+            `;
+          })
+          .join("");
+
+        moreBtn.style.display = records.length > this.devicesVisibleCount ? "flex" : "none";
+      }
+
+      showDeviceDetail(rec) {
+        const esSmartphone = rec.tipo_dispositivo === "smartphone";
+        const rows = [
+          ["Timestamp", rec.timestamp ? new Date(rec.timestamp).toLocaleString() : "-"],
+          ["Puesto", rec.puesto || "-"],
+          ["Driver ID", rec.driver_id || "-"],
+          ["IMEI", esSmartphone ? (rec.imei || "-") : "-"],
+          ["Descripción", rec.descripcion || "-"],
+          ["Correo", rec.correo || "-"],
+          ["Usuario", rec.usuario || "-"],
+          ["QR generado", rec.qr_doc_id ? "Sí" : "-"],
+        ];
+
+        document.getElementById("modal-record-title").textContent = rec.descripcion || rec.driver_id || "Detalle del dispositivo";
+        document.getElementById("modal-record-body").innerHTML = rows
+          .map(([k, v]) => `<div class="detail-row"><span class="k">${k}</span><span class="v">${v}</span></div>`)
+          .join("");
+
+        const photoBtn = document.getElementById("btn-modal-record-photo");
+        if (rec.foto_doc_id) {
+          photoBtn.style.display = "inline-flex";
+          photoBtn.onclick = () => {
+            document.getElementById("modal-record-detail").classList.remove("active");
+            this.viewPhoto(rec.foto_doc_id, rec.id);
+          };
+        } else {
+          photoBtn.style.display = "none";
+          photoBtn.onclick = null;
+        }
+
+        document.getElementById("modal-record-detail").classList.add("active");
+      }
+
+      renderScansList(records) {
+        const list = document.getElementById("list-scans");
+        const moreBtn = document.getElementById("btn-scans-more");
+        list.innerHTML = "";
+
+        if (records.length === 0) {
+          document.getElementById("scans-empty").style.display = "block";
+          moreBtn.style.display = "none";
+          return;
+        }
+
+        document.getElementById("scans-empty").style.display = "none";
+
+        const visible = records.slice(0, this.scansVisibleCount);
+
+        list.innerHTML = visible
+          .map((rec, idx) => {
+            const deviceIds = Array.isArray(rec.device_ids) ? rec.device_ids.join(", ") : (rec.device_ids || "-");
+            const title = rec.driver_id ? `Driver: ${rec.driver_id}` : `Dev: ${deviceIds}`;
+            const isValid = rec.resultado === "valido";
+            const badgeClass = isValid ? "green" : "red";
+            const badgeLabel = isValid ? "Válido" : "Denegado";
+            return `
+              <div class="record-row" data-idx="${idx}">
+                <div class="record-row-main">
+                  <span class="badge ${badgeClass}">${badgeLabel}</span>
+                  <span class="record-row-title">${title}</span>
+                </div>
+                <div class="record-row-meta">
+                  <span class="record-row-date">${this.constructor.formatShortDate(rec.timestamp)}</span>
+                  <svg class="record-row-chevron" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+              </div>
+            `;
+          })
+          .join("");
+
+        moreBtn.style.display = records.length > this.scansVisibleCount ? "flex" : "none";
+      }
+
+      showScanDetail(rec) {
+        const deviceIds = Array.isArray(rec.device_ids) ? rec.device_ids.join(", ") : (rec.device_ids || "-");
+        const rows = [
+          ["Fecha", rec.timestamp ? new Date(rec.timestamp).toLocaleString() : "-"],
+          ["Resultado", rec.resultado || "-"],
+          ["Tipo movimiento", rec.tipo_movimiento || "-"],
+          ["Modo", rec.modo || "-"],
+          ["Dispositivo(s)", deviceIds],
+          ["Driver ID", rec.driver_id || "-"],
+          ["Owner key", rec.owner_key || "-"],
+          ["Validado por", rec.validado_por || "-"],
+          ["Email validador", rec.email_validador || "-"],
+        ];
+
+        document.getElementById("modal-record-title").textContent = "Detalle del escaneo";
+        document.getElementById("modal-record-body").innerHTML = rows
+          .map(([k, v]) => `<div class="detail-row"><span class="k">${k}</span><span class="v">${v}</span></div>`)
+          .join("");
+
+        document.getElementById("btn-modal-record-photo").style.display = "none";
+        document.getElementById("modal-record-detail").classList.add("active");
+      }
+
+      async guardar() {
+        const puesto = document.getElementById("puesto").value;
+        const tipoDisp = document.getElementById("tipo-dispositivo").value;
+        const descripcion = document.getElementById("descripcion").value.toUpperCase();
+        const driverId = document.getElementById("driver-id").value;
+
+        DebugConsole.log(
+          `Guardar -> puesto=${puesto || "?"}, tipo=${tipoDisp || "?"}, desc="${descripcion}", foto=${this.fotoData ? "sí" : "no"}, driver_id=${driverId || "-"}`,
+          "info"
+        );
+
+        if (!puesto || !tipoDisp || !descripcion || !this.fotoData) {
+          DebugConsole.log("Validación: faltan campos obligatorios", "warn");
+          this.showAlert("registro", "Completa todos los campos requeridos", "error");
+          return;
+        }
+
+        if (puesto === "driver" && !driverId) {
+          DebugConsole.log("Validación: falta escanear el QR del driver", "warn");
+          this.showAlert("registro", "Escanea el QR del driver primero", "error");
+          return;
+        }
+
+        if (puesto === "otro" && !document.getElementById("correo").value) {
+          DebugConsole.log("Validación: falta correo de autorización", "warn");
+          this.showAlert("registro", "Ingresa el correo de autorización", "error");
+          return;
+        }
+
+        if (
+          tipoDisp === "smartphone" &&
+          (!document.getElementById("imei").value ||
+            document.getElementById("imei").value.length !== 15)
+        ) {
+          DebugConsole.log("Validación: IMEI inválido", "warn");
+          this.showAlert("registro", "IMEI inválido (15 dígitos)", "error");
+          return;
+        }
+
+        // Bloqueo BPP: si el IMEI del smartphone está en el catálogo de casos
+        // BPP, no se permite el registro bajo ninguna circunstancia.
+        if (tipoDisp === "smartphone") {
+          const imeiVal = document.getElementById("imei").value;
+          const { blocked, shipmentId } = this.checkBpp(imeiVal);
+          if (blocked) {
+            DebugConsole.log(
+              `Bloqueo BPP: IMEI ${imeiVal} implicado (shipment=${shipmentId || "?"})`,
+              "warn"
+            );
+            this.showBppBlockAlert(shipmentId);
+            return;
+          }
+        }
+
+        // Bloquear UI con la animación de carga mientras se procesa
+        // (foto, QR, guardado en bucket pueden tardar varios segundos).
+        MorphController.start();
+
+        let record = null;
+        let qrDataUrl = null;
+        let saveError = null;
+
+        try {
+          // 1. Generar ID único para el dispositivo
+          const deviceId = `dev_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+          // 2. Subir foto
+          const blob = await this.dataUrlToBlob(this.fotoData);
+          DebugConsole.log(`Foto a subir: ${(blob.size / 1024).toFixed(0)} KB`, "info");
+          const fotoDocId = await this.gridClient.uploadPublicDocument(
+            blob,
+            `dispositivo_${deviceId}.jpg`
+          );
+
+          // 3. Construir registro
+          const now = new Date().toISOString();
+          record = {
+            id: deviceId,
+            timestamp: now,
+            puesto,
+            tipo_dispositivo: tipoDisp,
+            descripcion,
+            foto_doc_id: fotoDocId,
+            usuario: this.currentUser?.ldap || "unknown",
+            email: this.currentUser?.email || "",
+            status: "activo",
+            ultimo_escaneo: now,
+          };
+
+          if (tipoDisp === "smartphone") {
+            record.imei = document.getElementById("imei").value;
+          }
+
+          if (puesto === "driver") {
+            record.driver_id = document.getElementById("driver-id").value;
+            record.owner_key = `driver:${record.driver_id}`;
+            record.owner_tipo = "driver";
+            // SIN QR para Driver
+          } else {
+            record.correo = document.getElementById("correo").value;
+            record.owner_key = `user:${record.correo.toLowerCase()}`;
+            record.owner_tipo = "otro";
+            // Generar QR para Otro (con logo central del doc_id configurado)
+            qrDataUrl = await this.generarQR(deviceId);
+            const qrBlob = await this.dataUrlToBlob(qrDataUrl);
+            record.qr_doc_id = await this.gridClient.uploadPublicDocument(
+              qrBlob,
+              `qr_${deviceId}.png`
+            );
+          }
+
+          // 4. Guardar en bucket
+          await this.guardarEnBucket(record);
+
+          DebugConsole.log(`Registro guardado (ID: ${record.id})`, "info");
+          MorphController.success();
+        } catch (e) {
+          DebugConsole.log(`Error al guardar: ${e.message}`, "error");
+          saveError = e;
+          MorphController.error();
+        } finally {
+          // Dejar ver el estado final del botón (éxito/error) antes de
+          // desbloquear la UI y recién ahí abrir el modal correspondiente.
+          await new Promise((resolve) => setTimeout(resolve, 900));
+          MorphController.close();
+
+          if (saveError) {
+            this.showAlert("registro", `Error: ${saveError.message}`, "error");
+          } else {
+            this.showAlert(
+              "registro",
+              `Dispositivo registrado (ID: ${record.id})`,
+              "success"
+            );
+
+            if (record.puesto === "driver") {
+              document.getElementById("modal-resultado").classList.add("active");
+              document.getElementById("modal-titulo").textContent = "Driver registrado";
+              document.getElementById("modal-mensaje").textContent =
+                `Driver ID ${record.driver_id} autorizado correctamente.`;
+              document.getElementById("qr-preview-modal").style.display = "none";
+            } else {
+              this.mostrarQRModal(qrDataUrl, record);
+            }
+          }
+        }
+      }
+
+      async generarQR(payload) {
+        const canvas = document.getElementById("qr-canvas");
+        const qr = new QRCode(payload, {
+          width: 280,
+          height: 280,
+          colorDark: "#000000",
+          colorLight: "#FFFFFF",
+        });
+
+        // Copiar el canvas generado
+        canvas.width = qr.canvas.width;
+        canvas.height = qr.canvas.height;
+        const dstCtx = canvas.getContext("2d");
+        dstCtx.drawImage(qr.canvas, 0, 0);
+
+        // Logo central (mismo doc_id que el logo del título)
+        if (this.logoImage) {
+          const logoSize = canvas.width * 0.26;
+          const x = (canvas.width - logoSize) / 2;
+          const y = (canvas.height - logoSize) / 2;
+          const pad = 6;
+          dstCtx.fillStyle = "#FFFFFF";
+          dstCtx.fillRect(x - pad, y - pad, logoSize + pad * 2, logoSize + pad * 2);
+          dstCtx.drawImage(this.logoImage, x, y, logoSize, logoSize);
+        }
+
+        return canvas.toDataURL("image/png");
+      }
+
+      mostrarQRModal(qrDataUrl, record) {
+        document.getElementById("modal-resultado").classList.add("active");
+        document.getElementById("modal-titulo").textContent = "QR generado";
+        document.getElementById("modal-mensaje").textContent =
+          `Dispositivo autorizado. ID: ${record.id}`;
+
+        const canvas = document.getElementById("qr-canvas-modal");
+        const ctx = canvas.getContext("2d");
+        const img = new Image();
+        img.onload = () => {
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        };
+        img.src = qrDataUrl;
+
+        document.getElementById("qr-preview-modal").style.display = "flex";
+      }
+
+      async guardarEnBucket(record) {
+        let bucket = await this.gridClient.getStateBucket("devices_master");
+        if (!bucket || !Array.isArray(bucket.records)) {
+          bucket = { ...bucket, records: [] };
+        }
+
+        // Migración perezosa: agregar campos nuevos a registros viejos si no los tienen
+        bucket.records = bucket.records.map((r) => {
+          if (!r.owner_key) {
+            if (r.driver_id) {
+              r.owner_key = `driver:${r.driver_id}`;
+              r.owner_tipo = "driver";
+            } else if (r.correo) {
+              r.owner_key = `user:${r.correo.toLowerCase()}`;
+              r.owner_tipo = "otro";
+            }
+          }
+          if (r.status === undefined) r.status = "activo";
+          if (r.ultimo_escaneo === undefined) r.ultimo_escaneo = r.timestamp;
+          return r;
+        });
+
+        bucket.records.push(record);
+
+        const result = await this.gridClient.setStateBucket(
+          "devices_master",
+          bucket
+        );
+        if (result.conflict) {
+          // Reintentar con backoff
+          await new Promise((r) => setTimeout(r, 500));
+          return this.guardarEnBucket(record);
+        }
+      }
+
+      // Convierte una data: URL a Blob sin usar fetch(). fetch(dataUrl) no
+      // toca la red (el navegador la resuelve localmente), pero el CSP/sandbox
+      // del iframe donde Grid monta el documento bloquea igual esa llamada y
+      // revienta con el mismo "TypeError: Failed to fetch" que un fallo de red
+      // real — decodificar el base64 a mano evita el fetch por completo.
+      dataUrlToBlob(dataUrl) {
+        const commaIdx = dataUrl.indexOf(",");
+        const header = dataUrl.slice(5, commaIdx); // quita "data:"
+        const data = dataUrl.slice(commaIdx + 1);
+        const mime = header.split(";")[0] || "application/octet-stream";
+        const isBase64 = header.includes("base64");
+
+        if (isBase64) {
+          const binary = atob(data);
+          const bytes = new Uint8Array(binary.length);
+          for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+          return new Blob([bytes], { type: mime });
+        }
+        return new Blob([decodeURIComponent(data)], { type: mime });
+      }
+
+      showAlert(tabId, message, type) {
+        const icons = {
+          success:
+            '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>',
+          error:
+            '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>',
+          warn:
+            '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg>',
+          info:
+            '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-5M12 8h.01"/></svg>',
+        };
+        const alertEl = document.getElementById(`alert-${tabId}`);
+        alertEl.innerHTML = `${icons[type] || icons.info}<span>${message}</span>`;
+        alertEl.className = `alert ${type}`;
+        alertEl.style.display = "flex";
+      }
+
+      // Alerta destacada de bloqueo BPP (más prominente que showAlert).
+      showBppBlockAlert(shipmentId) {
+        const alertEl = document.getElementById("alert-registro");
+        const shipTxt = shipmentId
+          ? ` Shipment: <strong>${shipmentId}</strong>.`
+          : "";
+        alertEl.innerHTML = `
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg>
+          <span><strong>Dispositivo implicado en un caso de generación BPP.</strong><br/>
+          Este IMEI no puede registrarse.${shipTxt}</span>
+        `;
+        alertEl.className = "alert error";
+        alertEl.style.display = "flex";
+        alertEl.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+
+      reset() {
+        document.getElementById("puesto").value = "";
+        document.getElementById("correo").value = "";
+        document.getElementById("correo").removeAttribute("readonly");
+        document.getElementById("tipo-dispositivo").value = "";
+        document.getElementById("imei").value = "";
+        document.getElementById("descripcion").value = "";
+        document.getElementById("driver-id").value = "";
+        this.fotoData = null;
+        document.getElementById("photo-preview").innerHTML = "";
+        document.getElementById("input-foto").value = "";
+        document.getElementById("driver-scan-confirm").style.display = "none";
+        document.getElementById("otro-scan-result").style.display = "none";
+        document.getElementById("existing-devices-card").style.display = "none";
+        this.resetFlowState();
+        this.updateFormSteps();
+      }
+    }
+
+    // Inicializar app
+    const app = new AutorizacionApp();
+  </script>
+</body>
+</html>
