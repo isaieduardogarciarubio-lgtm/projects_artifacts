@@ -3557,7 +3557,7 @@ class DestinoDocaSession {
    * lista (para la doca: el catálogo puede traer valores no numéricos que
    * ya se filtran de la lista, pero conviene poder escribirla a mano).
    */
-  renderPicker({ title, options, placeholder, emptyMessage, onPick, onBack, allowManual }) {
+  renderPicker({ title, options, placeholder, emptyMessage, onPick, onBack, allowManual, inputMode }) {
     this.stopScanner();
     this.container.innerHTML = `
       <div class="step-screen">
@@ -3566,7 +3566,7 @@ class DestinoDocaSession {
           <div class="step-progress">Pre-Missort</div>
         </div>
         <h1 class="step-question">${title}</h1>
-        <div class="picker-search"><input type="text" class="step-input dd-picker-search" placeholder="${placeholder}" /></div>
+        <div class="picker-search"><input type="text" class="step-input dd-picker-search" placeholder="${placeholder}"${inputMode ? ` inputmode="${inputMode}"` : ''} /></div>
         <div class="picker-list"></div>
       </div>
     `;
@@ -3634,6 +3634,7 @@ class DestinoDocaSession {
       placeholder: 'Buscar o escribir la doca...',
       emptyMessage: 'No hay docas en el catálogo — escribe la doca y presiona Enter.',
       allowManual: true,
+      inputMode: 'numeric',
       onPick: (doca) => {
         this.doca = doca;
         this.initialDoca = doca;
