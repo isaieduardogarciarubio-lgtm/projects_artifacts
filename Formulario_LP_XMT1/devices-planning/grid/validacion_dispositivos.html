@@ -1353,11 +1353,20 @@
 
         // Validar (normalizando driver_id: espacios, mayúsculas y ceros a la izquierda)
         const normDriverId = type === "driver" ? ValidacionApp.normalizeId(driverId) : null;
-        const devices = (this.devicesBucket?.records || []).filter((d) => {
+        const allRecords = this.devicesBucket?.records || [];
+        let devices = allRecords.filter((d) => {
           if (type === "device") return d.id === deviceId;
           if (type === "driver") return ValidacionApp.normalizeId(d.driver_id) === normDriverId;
           return false;
         });
+
+        // Si el QR corresponde a un dispositivo con owner_key, expandir a todos
+        // los dispositivos del mismo owner (múltiples dispositivos, mismo QR)
+        if (type === "device" && devices.length === 1 && devices[0].owner_key) {
+          const ownerKey = devices[0].owner_key;
+          const ownerDevices = allRecords.filter((d) => d.owner_key === ownerKey);
+          if (ownerDevices.length > 1) devices = ownerDevices;
+        }
 
         DebugConsole.log(
           `Buscando ${type === "driver" ? `driver_id=${normDriverId}` : `device_id=${deviceId}`} · encontrados=${devices.length}`,
