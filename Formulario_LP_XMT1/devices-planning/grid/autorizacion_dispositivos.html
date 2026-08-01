@@ -2793,7 +2793,7 @@ var QRCode;
 
       setupOtroScanner() {
         this._otroScanMode = "camera";
-        this.setOtroScanMode("camera");
+        this._otroScannerActive = false;
 
         document.getElementById("btn-otro-scanmode-camera").addEventListener("click", () =>
           this.setOtroScanMode("camera")
@@ -3104,14 +3104,30 @@ var QRCode;
         // Driver -> escanear QR -> (si ya existe, confirmar) -> datos del dispositivo.
         // Otro -> ¿ya tiene registro? -> escanear QR existente o correo nuevo
         //         -> (si ya existe, confirmar) -> datos del dispositivo.
+        const driverScanVisible = puesto === "driver";
         document.getElementById("driver-scan-section").style.display =
-          puesto === "driver" ? "block" : "none";
+          driverScanVisible ? "block" : "none";
+        if (driverScanVisible && !this._driverScannerActive) {
+          this._driverScannerActive = true;
+          this.setDriverScanMode(this._driverScanMode);
+        } else if (!driverScanVisible && this._driverScannerActive) {
+          this._driverScannerActive = false;
+          if (this.scanner) { this.scanner.stop(); this.scanner = null; }
+        }
 
         document.getElementById("otro-check-section").style.display =
           puesto === "otro" && !this.otroMode ? "block" : "none";
 
+        const otroScanVisible = puesto === "otro" && this.otroMode === "existente";
         document.getElementById("otro-scan-section").style.display =
-          puesto === "otro" && this.otroMode === "existente" ? "block" : "none";
+          otroScanVisible ? "block" : "none";
+        if (otroScanVisible && !this._otroScannerActive) {
+          this._otroScannerActive = true;
+          this.setOtroScanMode(this._otroScanMode);
+        } else if (!otroScanVisible && this._otroScannerActive) {
+          this._otroScannerActive = false;
+          if (this.otroScanner) { this.otroScanner.stop(); this.otroScanner = null; }
+        }
 
         document.getElementById("email-section").style.display =
           puesto === "otro" && this.otroMode === "nuevo" ? "block" : "none";
@@ -3253,7 +3269,7 @@ var QRCode;
 
       setupDriverScanner() {
         this._driverScanMode = "camera";
-        this.setDriverScanMode("camera");
+        this._driverScannerActive = false;
 
         document.getElementById("btn-driver-scanmode-camera").addEventListener("click", () =>
           this.setDriverScanMode("camera")
@@ -3601,10 +3617,29 @@ var QRCode;
       }
 
       async desactivarDispositivo(deviceId) {
-        if (!confirm(`¿Desactivar el dispositivo ${deviceId}? Esta acción lo marcará como inactivo.`)) return;
         const btn = document.getElementById("btn-modal-record-delete");
+
+        // Primer click: pide confirmación en el botón mismo
+        if (!btn._confirmPending) {
+          btn._confirmPending = true;
+          const originalText = btn.textContent;
+          btn.textContent = "¿Confirmar?";
+          btn.style.background = "rgba(255,92,108,0.15)";
+          const timer = setTimeout(() => {
+            btn._confirmPending = false;
+            btn.textContent = originalText;
+            btn.style.background = "";
+          }, 3000);
+          btn._confirmTimer = timer;
+          return;
+        }
+
+        // Segundo click: ejecutar
+        clearTimeout(btn._confirmTimer);
+        btn._confirmPending = false;
         btn.disabled = true;
         btn.textContent = "Desactivando...";
+        btn.style.background = "";
         try {
           const updatedBucket = await this.gridClient.mutateBucket("devices_master", async (bucket) => {
             const rec = bucket.records.find(r => r.id === deviceId);
