@@ -731,7 +731,9 @@ class FormEngine {
       return;
     }
 
-    const isInContainer = String(entry.estatus || '').trim().toLowerCase() === 'in_container';
+    const isInContainer = ['in_container', 'ready_to_deliver'].includes(
+      String(entry.estatus || '').trim().toLowerCase()
+    );
     const resultado = isInContainer ? 'En contenedor' : 'No en contenedor';
     this.values.estatus = entry.estatus;
     this.values.optimizada = entry.optimizada;

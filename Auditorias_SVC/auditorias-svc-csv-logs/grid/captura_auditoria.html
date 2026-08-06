@@ -1576,6 +1576,11 @@ const ScanParser = (() => {
       try {
         const obj = JSON.parse(text);
         if (obj && typeof obj === 'object') {
+          const t = (obj.t || '').toLowerCase();
+          if (t === 'lm') {
+            const id = obj.id != null ? String(obj.id).trim() : null;
+            return id ? { value: id, kind: 'shipment' } : null;
+          }
           if (obj.legacy_id != null) return { value: String(obj.legacy_id).trim(), kind: 'hu' };
           if (obj.id != null) return { value: String(obj.id).trim(), kind: 'shipment' };
         }
@@ -2788,7 +2793,9 @@ class FormEngine {
       return;
     }
 
-    const isInContainer = String(entry.estatus || '').trim().toLowerCase() === 'in_container';
+    const isInContainer = ['in_container', 'ready_to_deliver'].includes(
+      String(entry.estatus || '').trim().toLowerCase()
+    );
     const resultado = isInContainer ? 'En contenedor' : 'No en contenedor';
     this.values.estatus = entry.estatus;
     this.values.optimizada = entry.optimizada;
@@ -3144,7 +3151,7 @@ class FormEngine {
  * con confirmación manual en cada paso), este log declara la doca UNA vez
  * por sesión (cambiable en cualquier momento desde la pastilla sobre la
  * cámara) y luego escanea shipments en bucle continuo:
- *   - Correcto (estatus in_container Y doca coincide): flash verde,
+ *   - Correcto (estatus in_container o ready_to_deliver, Y doca coincide): flash verde,
  *     guarda solo y vuelve a escanear de inmediato — cero taps.
  *   - Incorrecto (estatus distinto, doca no coincide, o shipment no
  *     encontrado en catálogo): flash rojo + motivo en pantalla, pide
@@ -3459,7 +3466,9 @@ class ContenedorAuditSession {
       return;
     }
 
-    const estatusOk = String(entry.estatus || '').trim().toLowerCase() === 'in_container';
+    const estatusOk = ['in_container', 'ready_to_deliver'].includes(
+      String(entry.estatus || '').trim().toLowerCase()
+    );
     const catalogDoca = entry.doca != null ? String(entry.doca).trim() : '';
     const docaOk = !catalogDoca || catalogDoca === String(this.doca).trim();
 

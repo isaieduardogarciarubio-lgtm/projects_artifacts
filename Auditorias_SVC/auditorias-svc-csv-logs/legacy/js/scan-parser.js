@@ -33,6 +33,11 @@ const ScanParser = (() => {
       try {
         const obj = JSON.parse(text);
         if (obj && typeof obj === 'object') {
+          const t = (obj.t || '').toLowerCase();
+          if (t === 'lm') {
+            const id = obj.id != null ? String(obj.id).trim() : null;
+            return id ? { value: id, kind: 'shipment' } : null;
+          }
           if (obj.legacy_id != null) return { value: String(obj.legacy_id).trim(), kind: 'hu' };
           if (obj.id != null) return { value: String(obj.id).trim(), kind: 'shipment' };
         }

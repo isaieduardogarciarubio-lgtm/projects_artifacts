@@ -1875,6 +1875,11 @@ const ScanParser = (() => {
             const key = Object.keys(obj).find((k) => k.toLowerCase() === name);
             return key != null ? obj[key] : null;
           };
+          const t = (getKey('t') || '').toLowerCase();
+          if (t === 'lm') {
+            const id = getKey('id');
+            return id != null ? { value: String(id).trim(), kind: 'shipment' } : null;
+          }
           const legacy = getKey('legacy_id');
           if (legacy != null) return { value: String(legacy).trim(), kind: 'hu' };
           const id = getKey('id');
@@ -3004,7 +3009,9 @@ class FormEngine {
       return;
     }
 
-    const isInContainer = String(entry.estatus || '').trim().toLowerCase() === 'in_container';
+    const isInContainer = ['in_container', 'ready_to_deliver'].includes(
+      String(entry.estatus || '').trim().toLowerCase()
+    );
     const resultado = isInContainer ? 'En contenedor' : 'No en contenedor';
     this.values.estatus = entry.estatus;
     this.values.optimizada = entry.optimizada;
