@@ -88,7 +88,9 @@
   .avatar {
     width: 52px; height: 52px; border-radius: 50%; background: var(--accent-dark); color: #fff;
     display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; min-width: 52px;
+    overflow: hidden;
   }
+  .avatar img { width: 100%; height: 100%; object-fit: cover; }
   .hero-name { font-size: 16px; font-weight: 700; }
   .hero-role { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
   .status-pill {
@@ -114,6 +116,15 @@
     padding: 9px 14px 9px 34px; font-size: 13px; width: 220px; outline: none; background: var(--bg-page);
   }
   .search-wrap input:focus { border-color: var(--accent); }
+
+  .range-select {
+    font-family: var(--font); border: 1px solid #E2E8F0; border-radius: var(--radius-card);
+    padding: 9px 14px; font-size: 13px; background: var(--bg-page); color: var(--text-primary);
+    outline: none; cursor: pointer;
+  }
+  .range-select:focus { border-color: var(--accent); }
+  .table-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .range-note { font-size: 12px; color: var(--text-secondary); margin-bottom: 12px; }
 
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
   thead th {
@@ -213,11 +224,19 @@
   <div class="table-card">
     <div class="table-card-header">
       <h2>Historial de ingresos</h2>
-      <div class="search-wrap">
-        <svg class="icon"><use href="#icon-search"/></svg>
-        <input type="text" id="searchInput" placeholder="Buscar por nombre o sitio&hellip;">
+      <div class="table-controls">
+        <select class="range-select" id="rangeSelect">
+          <option value="7" selected>Última semana</option>
+          <option value="30">Últimos 30 días</option>
+          <option value="0">Todo el historial</option>
+        </select>
+        <div class="search-wrap">
+          <svg class="icon"><use href="#icon-search"/></svg>
+          <input type="text" id="searchInput" placeholder="Buscar por nombre o sitio&hellip;">
+        </div>
       </div>
     </div>
+    <div class="range-note" id="rangeNote"></div>
     <table>
       <thead>
         <tr>
@@ -249,6 +268,10 @@
     "MARCA_TEMPORAL", "USUARIO_GUARDIA", "NOMBRE",
     "APELLIDO_PATERNO", "APELLIDO_MATERNO", "PUESTO", "SITIO", "CURP"
   ];
+  // La foto no siempre tiene un encabezado consistente; si no aparece por nombre,
+  // se usa la columna K (índice 10, base 0) tal como se ve en la hoja.
+  const FOTO_HEADER_CANDIDATES = ["FOTO", "FOTOGRAFIA", "IMAGEN", "PHOTO"];
+  const FOTO_FALLBACK_COL_INDEX = 10;
 
   function normalizeHeader(h) {
     return String(h || "")
@@ -290,6 +313,25 @@
     return a && b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
   }
 
+  function extractDriveFileId(url) {
+    if (!url) return null;
+    const patterns = [
+      /[?&]id=([a-zA-Z0-9_-]{10,})/,
+      /\/file\/d\/([a-zA-Z0-9_-]{10,})/,
+      /\/d\/([a-zA-Z0-9_-]{10,})/,
+    ];
+    for (const re of patterns) {
+      const m = String(url).match(re);
+      if (m) return m[1];
+    }
+    return null;
+  }
+
+  function driveThumbnailUrl(url) {
+    const id = extractDriveFileId(url);
+    return id ? `https://drive.google.com/thumbnail?id=${id}&sz=w200` : null;
+  }
+
   function escapeHtml(str) {
     return String(str || "").replace(/[&<>"']/g, (c) => ({
       "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
@@ -323,6 +365,12 @@
 
     const get = (row, col) => (col in colIndex ? (row[colIndex[col]] || "").trim() : "");
 
+    let fotoColIndex = FOTO_FALLBACK_COL_INDEX;
+    for (const cand of FOTO_HEADER_CANDIDATES) {
+      const idx = headerRow.indexOf(cand);
+      if (idx !== -1) { fotoColIndex = idx; break; }
+    }
+
     return values.slice(1)
       .filter((row) => row && row.some((c) => String(c || "").trim() !== ""))
       .map((row) => {
@@ -333,6 +381,7 @@
         return {
           marcaTemporal,
           fecha: parseSheetDate(marcaTemporal),
+          fotoUrl: (row[fotoColIndex] || "").trim(),
           usuarioGuardia: get(row, "USUARIO_GUARDIA"),
           nombre, apPaterno, apMaterno,
           nombreCompleto: [nombre, apPaterno, apMaterno].filter(Boolean).join(" ").trim() || "(sin nombre)",
@@ -358,11 +407,18 @@
 
   function renderHeroCards(records) {
     const byPerson = new Map();
+    const byPersonPhoto = new Map();
     records.forEach((r) => {
       const key = r.curp || r.nombreCompleto.toLowerCase();
       const current = byPerson.get(key);
       if (!current || (r.fecha && (!current.fecha || r.fecha > current.fecha))) {
         byPerson.set(key, r);
+      }
+      if (r.fotoUrl) {
+        const currentPhoto = byPersonPhoto.get(key);
+        if (!currentPhoto || (r.fecha && (!currentPhoto.fecha || r.fecha > currentPhoto.fecha))) {
+          byPersonPhoto.set(key, r);
+        }
       }
     });
 
@@ -373,10 +429,17 @@
     grid.innerHTML = people.map((r) => {
       const hoursSince = r.fecha ? (now - r.fecha) / 36e5 : Infinity;
       const fresh = hoursSince <= 12;
+      const key = r.curp || r.nombreCompleto.toLowerCase();
+      const photoRow = byPersonPhoto.get(key);
+      const thumbUrl = photoRow ? driveThumbnailUrl(photoRow.fotoUrl) : null;
+      const avatarInner = thumbUrl
+        ? `<img src="${escapeHtml(thumbUrl)}" alt="${escapeHtml(r.nombreCompleto)}" ` +
+          `onerror="this.replaceWith(Object.assign(document.createElement('span'), {textContent: '${escapeHtml(initials(r.nombre, r.apPaterno))}'}))">`
+        : escapeHtml(initials(r.nombre, r.apPaterno));
       return `
         <div class="hero-card">
           <div class="hero-top">
-            <div class="avatar">${escapeHtml(initials(r.nombre, r.apPaterno))}</div>
+            <div class="avatar">${avatarInner}</div>
             <div>
               <div class="hero-name">${escapeHtml(r.nombreCompleto)}</div>
               <div class="hero-role">${escapeHtml(r.puesto || "Puesto no especificado")}</div>
@@ -398,7 +461,7 @@
     document.getElementById("heroSection").style.display = people.length ? "block" : "none";
   }
 
-  function renderTable(records, filterText) {
+  function renderTable(records, filterText, rangeDays) {
     const tbody = document.getElementById("tableBody");
     const sorted = [...records].sort((a, b) => {
       if (a.fecha && b.fecha) return b.fecha - a.fecha;
@@ -407,12 +470,29 @@
       return 0;
     });
 
+    const totalCount = sorted.length;
+    let ranged = sorted;
+    if (rangeDays > 0) {
+      const cutoff = new Date(Date.now() - rangeDays * 24 * 60 * 60 * 1000);
+      // Las filas sin fecha reconocible se mantienen visibles: no hay forma segura de excluirlas por rango.
+      ranged = sorted.filter((r) => !r.fecha || r.fecha >= cutoff);
+    }
+
+    const rangeNote = document.getElementById("rangeNote");
+    if (rangeDays > 0 && ranged.length < totalCount) {
+      rangeNote.textContent =
+        `Mostrando ${ranged.length} de ${totalCount} registros (últimos ${rangeDays} días). ` +
+        `Selecciona "Todo el historial" para ver el resto.`;
+    } else {
+      rangeNote.textContent = "";
+    }
+
     const term = (filterText || "").trim().toLowerCase();
     const filtered = term
-      ? sorted.filter((r) =>
+      ? ranged.filter((r) =>
           r.nombreCompleto.toLowerCase().includes(term) ||
           r.sitio.toLowerCase().includes(term))
-      : sorted;
+      : ranged;
 
     if (!filtered.length) {
       tbody.innerHTML = `<tr class="empty-row"><td colspan="5">Sin registros que coincidan.</td></tr>`;
@@ -438,9 +518,10 @@
 
   function renderAll() {
     const term = document.getElementById("searchInput").value;
+    const rangeDays = Number(document.getElementById("rangeSelect").value);
     renderStats(allRecords);
     renderHeroCards(allRecords);
-    renderTable(allRecords, term);
+    renderTable(allRecords, term, rangeDays);
   }
 
   async function loadData(isManual) {
@@ -481,6 +562,7 @@
 
   document.getElementById("refreshBtn").addEventListener("click", () => loadData(true));
   document.getElementById("searchInput").addEventListener("input", renderAll);
+  document.getElementById("rangeSelect").addEventListener("change", renderAll);
 
   loadData(false);
   setInterval(() => loadData(false), AUTO_REFRESH_MS);
