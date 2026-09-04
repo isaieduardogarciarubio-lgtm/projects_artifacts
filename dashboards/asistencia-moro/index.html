@@ -332,6 +332,48 @@
     return id ? `https://drive.google.com/thumbnail?id=${id}&sz=w200` : null;
   }
 
+  // Intento 1: proxy de Drive de Grid (usa el Google del propio visitante — falla si no
+  // tiene su cuenta de Google conectada en Grid, a diferencia de Grid.sheets que siempre
+  // usa el Google del dueño del documento).
+  function tryGridDriveDownload(fileId) {
+    if (!fileId) return Promise.resolve(null);
+    return fetch(`/api/v1/google/drive/files/${fileId}/download`, { credentials: "include" })
+      .then((r) => (r.ok ? r.blob() : Promise.reject(new Error("grid_drive_" + r.status))))
+      .then((blob) => URL.createObjectURL(blob))
+      .catch(() => null);
+  }
+
+  // Intento 2: miniatura pública de Drive (solo funciona si el archivo es "cualquiera con el enlace").
+  function tryPublicThumbnail(fotoUrl) {
+    const thumbUrl = driveThumbnailUrl(fotoUrl);
+    if (!thumbUrl) return Promise.resolve(null);
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve(thumbUrl);
+      img.onerror = () => resolve(null);
+      img.src = thumbUrl;
+    });
+  }
+
+  // Intento 3 (implícito): si ambos fallan, se conserva el avatar de iniciales ya renderizado.
+  async function enhanceAvatarPhotos(people, byPersonPhoto) {
+    for (let i = 0; i < people.length; i++) {
+      const r = people[i];
+      const key = r.curp || r.nombreCompleto.toLowerCase();
+      const photoRow = byPersonPhoto.get(key);
+      if (!photoRow || !photoRow.fotoUrl) continue;
+
+      const container = document.getElementById(`avatar-${i}`);
+      if (!container) continue;
+
+      const fileId = extractDriveFileId(photoRow.fotoUrl);
+      const finalUrl = (await tryGridDriveDownload(fileId)) || (await tryPublicThumbnail(photoRow.fotoUrl));
+      if (finalUrl) {
+        container.innerHTML = `<img src="${escapeHtml(finalUrl)}" alt="${escapeHtml(r.nombreCompleto)}">`;
+      }
+    }
+  }
+
   function escapeHtml(str) {
     return String(str || "").replace(/[&<>"']/g, (c) => ({
       "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
@@ -426,20 +468,13 @@
     const grid = document.getElementById("heroGrid");
     const now = new Date();
 
-    grid.innerHTML = people.map((r) => {
+    grid.innerHTML = people.map((r, i) => {
       const hoursSince = r.fecha ? (now - r.fecha) / 36e5 : Infinity;
       const fresh = hoursSince <= 12;
-      const key = r.curp || r.nombreCompleto.toLowerCase();
-      const photoRow = byPersonPhoto.get(key);
-      const thumbUrl = photoRow ? driveThumbnailUrl(photoRow.fotoUrl) : null;
-      const avatarInner = thumbUrl
-        ? `<img src="${escapeHtml(thumbUrl)}" alt="${escapeHtml(r.nombreCompleto)}" ` +
-          `onerror="this.replaceWith(Object.assign(document.createElement('span'), {textContent: '${escapeHtml(initials(r.nombre, r.apPaterno))}'}))">`
-        : escapeHtml(initials(r.nombre, r.apPaterno));
       return `
         <div class="hero-card">
           <div class="hero-top">
-            <div class="avatar">${avatarInner}</div>
+            <div class="avatar" id="avatar-${i}">${escapeHtml(initials(r.nombre, r.apPaterno))}</div>
             <div>
               <div class="hero-name">${escapeHtml(r.nombreCompleto)}</div>
               <div class="hero-role">${escapeHtml(r.puesto || "Puesto no especificado")}</div>
@@ -459,6 +494,7 @@
     }).join("");
 
     document.getElementById("heroSection").style.display = people.length ? "block" : "none";
+    enhanceAvatarPhotos(people, byPersonPhoto);
   }
 
   function renderTable(records, filterText, rangeDays) {
