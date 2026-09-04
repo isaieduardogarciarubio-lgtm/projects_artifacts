@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Visor de Asistencia · MORO</title>
+<script src="/d/_assets/grid-sdk.js"></script>
+<style>
+  :root {
+    --accent: #4FD1C5;
+    --accent-dark: #2D3748;
+    --text-primary: #1f2733;
+    --text-secondary: #A0AEC0;
+    --bg-page: #F7FAFC;
+    --bg-card: #FFFFFF;
+    --radius-card: 15px;
+    --radius-shell: 16px;
+    --shadow-card: 0px 3.5px 5.5px rgba(0, 0, 0, 0.05);
+    --shadow-navbar: 0px 7px 23px rgba(0, 0, 0, 0.05);
+    --font: 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+    --green: #48BB78;
+    --amber: #ED8936;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg-page);
+    font-family: var(--font);
+    color: var(--text-primary);
+  }
+  .icon { width: 20px; height: 20px; display: inline-block; vertical-align: middle; fill: currentColor; }
+  #app { max-width: 1180px; margin: 0 auto; padding: 20px 20px 48px; }
+
+  /* Navbar */
+  .navbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    background: linear-gradient(112.83deg, rgba(255,255,255,.82) 0%, rgba(255,255,255,.8) 110.84%);
+    border: 1.5px solid #FFFFFF;
+    border-radius: var(--radius-shell);
+    box-shadow: var(--shadow-navbar);
+    padding: 16px 24px;
+    margin-bottom: 20px;
+  }
+  .navbar .crumb { font-size: 12px; color: var(--text-secondary); font-weight: 500; }
+  .navbar h1 { font-size: 20px; margin: 2px 0 0; font-weight: 700; }
+  .navbar-right { display: flex; align-items: center; gap: 14px; }
+  .updated-at { font-size: 12px; color: var(--text-secondary); text-align: right; line-height: 1.4; }
+  .refresh-btn {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--accent); color: #fff; border: none;
+    border-radius: var(--radius-card); padding: 10px 16px;
+    font-family: var(--font); font-weight: 700; font-size: 13px;
+    cursor: pointer; transition: box-shadow .2s linear, transform .2s linear;
+  }
+  .refresh-btn:hover { box-shadow: 0 4px 12px rgba(79,209,197,.4); }
+  .refresh-btn:active { transform: scale(0.97); }
+  .refresh-btn.spinning .icon { animation: spin 0.8s linear infinite; }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+  /* Stat row */
+  .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 20px; }
+  .stat-card {
+    background: var(--bg-card); border-radius: var(--radius-card); box-shadow: var(--shadow-card);
+    padding: 18px 20px; display: flex; align-items: center; gap: 14px;
+  }
+  .icon-box {
+    width: 44px; height: 44px; min-width: 44px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--accent); color: #fff;
+  }
+  .icon-box.muted { background: var(--bg-page); color: var(--accent); }
+  .stat-card .label { font-size: 12px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; letter-spacing: .02em; }
+  .stat-card .value { font-size: 20px; font-weight: 700; margin-top: 2px; }
+
+  /* Hero cards (per person) */
+  .section-title { font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .04em; margin: 8px 0 12px; }
+  .hero-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 28px; }
+  .hero-card {
+    background: var(--bg-card); border-radius: var(--radius-card); box-shadow: var(--shadow-card);
+    padding: 22px; display: flex; flex-direction: column; gap: 14px;
+  }
+  .hero-top { display: flex; align-items: center; gap: 14px; }
+  .avatar {
+    width: 52px; height: 52px; border-radius: 50%; background: var(--accent-dark); color: #fff;
+    display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; min-width: 52px;
+  }
+  .hero-name { font-size: 16px; font-weight: 700; }
+  .hero-role { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
+  .status-pill {
+    display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700;
+    padding: 4px 10px; border-radius: 999px; text-transform: uppercase; letter-spacing: .03em; margin-left: auto;
+  }
+  .status-pill.ok { background: rgba(72,187,120,.12); color: var(--green); }
+  .status-pill.stale { background: rgba(160,174,192,.15); color: var(--text-secondary); }
+  .hero-divider { height: 1px; background: #EDF2F7; }
+  .hero-detail { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text-primary); }
+  .hero-detail .icon { width: 16px; height: 16px; color: var(--text-secondary); }
+  .hero-time { font-size: 22px; font-weight: 700; }
+  .hero-date { font-size: 12px; color: var(--text-secondary); }
+
+  /* Table card */
+  .table-card { background: var(--bg-card); border-radius: var(--radius-card); box-shadow: var(--shadow-card); padding: 22px; }
+  .table-card-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+  .table-card-header h2 { font-size: 16px; margin: 0; }
+  .search-wrap { position: relative; }
+  .search-wrap .icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); width: 16px; height: 16px; }
+  .search-wrap input {
+    font-family: var(--font); border: 1px solid #E2E8F0; border-radius: var(--radius-card);
+    padding: 9px 14px 9px 34px; font-size: 13px; width: 220px; outline: none; background: var(--bg-page);
+  }
+  .search-wrap input:focus { border-color: var(--accent); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    text-align: left; color: var(--text-secondary); font-size: 11px; text-transform: uppercase;
+    letter-spacing: .03em; font-weight: 700; padding: 0 10px 10px; border-bottom: 1px solid #EDF2F7;
+  }
+  tbody td { padding: 12px 10px; border-bottom: 1px solid #F7FAFC; vertical-align: middle; }
+  tbody tr:hover { background: #FBFEFE; }
+  .cell-name { font-weight: 600; }
+  .cell-sub { color: var(--text-secondary); font-size: 12px; }
+  .badge-site {
+    display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 999px;
+    background: rgba(79,209,197,.12); color: #2C7A7B;
+  }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--text-secondary); }
+
+  .state-banner {
+    display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-radius: var(--radius-card);
+    font-size: 13px; margin-bottom: 20px;
+  }
+  .state-banner.error { background: #FFF5F5; color: #C53030; }
+  .state-banner.loading { background: #F7FAFC; color: var(--text-secondary); }
+  .empty-row td { text-align: center; color: var(--text-secondary); padding: 30px 10px; }
+
+  @media (max-width: 640px) {
+    .navbar { flex-direction: column; align-items: flex-start; }
+    .navbar-right { width: 100%; justify-content: space-between; }
+    .search-wrap input { width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Sprite de íconos (Google Material Icons, descargados como SVG) -->
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <symbol id="icon-schedule" viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/><path d="M12.5 7H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></symbol>
+    <symbol id="icon-place" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></symbol>
+    <symbol id="icon-person" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></symbol>
+    <symbol id="icon-work" viewBox="0 0 24 24"><path d="M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-6 0h-4V4h4v2z"/></symbol>
+    <symbol id="icon-business" viewBox="0 0 24 24"><path d="M10 16v-1H3.01L3 19c0 1.11.89 2 2 2h14c1.11 0 2-.89 2-2v-4h-7v1h-4zm10-9h-4.01V5l-2-2h-4l-2 2v2H4c-1.1 0-2 .9-2 2v3c0 1.11.89 2 2 2h6v-2h4v2h6c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2zm-6 0h-4V5h4v2z"/></symbol>
+    <symbol id="icon-verified" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></symbol>
+    <symbol id="icon-group" viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></symbol>
+    <symbol id="icon-history" viewBox="0 0 24 24"><path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></symbol>
+    <symbol id="icon-qrcode" viewBox="0 0 24 24"><path d="M3,11h8V3H3V11z M5,5h4v4H5V5z"/><path d="M3,21h8v-8H3V21z M5,15h4v4H5V15z"/><path d="M13,3v8h8V3H13z M19,9h-4V5h4V9z"/><rect height="2" width="2" x="19" y="19"/><rect height="2" width="2" x="13" y="13"/><rect height="2" width="2" x="15" y="15"/><rect height="2" width="2" x="13" y="17"/><rect height="2" width="2" x="15" y="19"/><rect height="2" width="2" x="17" y="17"/><rect height="2" width="2" x="17" y="13"/><rect height="2" width="2" x="19" y="15"/></symbol>
+    <symbol id="icon-refresh" viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></symbol>
+    <symbol id="icon-check" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></symbol>
+    <symbol id="icon-search" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></symbol>
+  </defs>
+</svg>
+
+<div id="app">
+
+  <div class="navbar">
+    <div>
+      <div class="crumb">Asistencia / Visor en vivo</div>
+      <h1>Control de acceso &middot; MORO</h1>
+    </div>
+    <div class="navbar-right">
+      <div class="updated-at" id="updatedAt">Cargando&hellip;</div>
+      <button class="refresh-btn" id="refreshBtn">
+        <svg class="icon"><use href="#icon-refresh"/></svg>
+        Actualizar
+      </button>
+    </div>
+  </div>
+
+  <div id="stateBanner"></div>
+
+  <div class="stat-row" id="statRow" style="display:none">
+    <div class="stat-card">
+      <div class="icon-box"><svg class="icon"><use href="#icon-group"/></svg></div>
+      <div><div class="label">Colaboradores</div><div class="value" id="statPeople">&mdash;</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="icon-box muted"><svg class="icon"><use href="#icon-check"/></svg></div>
+      <div><div class="label">Registros hoy</div><div class="value" id="statToday">&mdash;</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="icon-box muted"><svg class="icon"><use href="#icon-place"/></svg></div>
+      <div><div class="label">Sitios activos</div><div class="value" id="statSites">&mdash;</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="icon-box muted"><svg class="icon"><use href="#icon-history"/></svg></div>
+      <div><div class="label">Total de registros</div><div class="value" id="statTotal">&mdash;</div></div>
+    </div>
+  </div>
+
+  <div id="heroSection" style="display:none">
+    <div class="section-title">Último ingreso por colaborador</div>
+    <div class="hero-grid" id="heroGrid"></div>
+  </div>
+
+  <div class="table-card">
+    <div class="table-card-header">
+      <h2>Historial de ingresos</h2>
+      <div class="search-wrap">
+        <svg class="icon"><use href="#icon-search"/></svg>
+        <input type="text" id="searchInput" placeholder="Buscar por nombre, sitio o empresa&hellip;">
+      </div>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Hora</th>
+          <th>Colaborador</th>
+          <th>Sitio</th>
+          <th>Empresa / Puesto</th>
+          <th>Guardia</th>
+          <th>QR escaneado</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody">
+        <tr class="empty-row"><td colspan="6">Cargando datos&hellip;</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+  // ---- Configuración ----
+  // GRID_DOC_ID se completa después del primer upload a Grid (Grid.sheets.* requiere
+  // conocer el doc_id del propio documento). Ver instrucciones de despliegue.
+  const GRID_DOC_ID = "__GRID_DOC_ID__";
+  const SHEET_ID = "1Y9BE_qwVnUXrTysChqDE1goSOmyiqVwdhMOcSYoJkeQ";
+  const SHEET_RANGE = "moro!A1:Z2000";
+  const AUTO_REFRESH_MS = 45000;
+
+  const EXPECTED_COLS = [
+    "MARCA_TEMPORAL", "QR_ESCANEADO", "USUARIO_GUARDIA", "NOMBRE",
+    "APELLIDO_PATERNO", "APELLIDO_MATERNO", "EMPRESA", "PUESTO", "SITIO", "CURP"
+  ];
+
+  function normalizeHeader(h) {
+    return String(h || "")
+      .trim()
+      .toUpperCase()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .replace(/\s+/g, "_");
+  }
+
+  function parseSheetDate(str) {
+    if (!str) return null;
+    const s = String(str).trim();
+    const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})[, ]+(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+    if (m) {
+      const [, day, month, year, hour, min, sec] = m;
+      return new Date(+year, +month - 1, +day, +hour, +min, sec ? +sec : 0);
+    }
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  function initials(nombre, apPaterno) {
+    const a = (nombre || "").trim().charAt(0);
+    const b = (apPaterno || "").trim().charAt(0);
+    return (a + b).toUpperCase() || "?";
+  }
+
+  function fmtDateTime(d) {
+    if (!d) return "Fecha no reconocida";
+    return new Intl.DateTimeFormat("es-MX", { dateStyle: "medium", timeStyle: "short" }).format(d);
+  }
+
+  function fmtTime(d) {
+    if (!d) return "--:--";
+    return new Intl.DateTimeFormat("es-MX", { timeStyle: "short" }).format(d);
+  }
+
+  function isSameDay(a, b) {
+    return a && b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  }
+
+  function escapeHtml(str) {
+    return String(str || "").replace(/[&<>"']/g, (c) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    }[c]));
+  }
+
+  let allRecords = [];
+
+  function showBanner(type, html) {
+    const el = document.getElementById("stateBanner");
+    if (!html) { el.innerHTML = ""; return; }
+    el.innerHTML = `<div class="state-banner ${type}">${html}</div>`;
+  }
+
+  function parseRows(values) {
+    if (!values || !values.length) return [];
+    const headerRow = values[0].map(normalizeHeader);
+    const colIndex = {};
+    EXPECTED_COLS.forEach((col) => {
+      const idx = headerRow.indexOf(col);
+      if (idx !== -1) colIndex[col] = idx;
+    });
+
+    const missing = EXPECTED_COLS.filter((c) => !(c in colIndex));
+    if (missing.length) {
+      showBanner("error",
+        `No se encontraron todas las columnas esperadas en la pestaña <b>moro</b>. ` +
+        `Faltan: ${missing.join(", ")}. Encabezados leídos: ${headerRow.join(", ") || "(vacío)"}.`
+      );
+    }
+
+    const get = (row, col) => (col in colIndex ? (row[colIndex[col]] || "").trim() : "");
+
+    return values.slice(1)
+      .filter((row) => row && row.some((c) => String(c || "").trim() !== ""))
+      .map((row) => {
+        const nombre = get(row, "NOMBRE");
+        const apPaterno = get(row, "APELLIDO_PATERNO");
+        const apMaterno = get(row, "APELLIDO_MATERNO");
+        const marcaTemporal = get(row, "MARCA_TEMPORAL");
+        return {
+          marcaTemporal,
+          fecha: parseSheetDate(marcaTemporal),
+          qrEscaneado: get(row, "QR_ESCANEADO"),
+          usuarioGuardia: get(row, "USUARIO_GUARDIA"),
+          nombre, apPaterno, apMaterno,
+          nombreCompleto: [nombre, apPaterno, apMaterno].filter(Boolean).join(" ").trim() || "(sin nombre)",
+          empresa: get(row, "EMPRESA"),
+          puesto: get(row, "PUESTO"),
+          sitio: get(row, "SITIO"),
+          curp: get(row, "CURP"),
+        };
+      });
+  }
+
+  function renderStats(records) {
+    const now = new Date();
+    const people = new Set(records.map((r) => r.curp || r.nombreCompleto.toLowerCase()));
+    const sites = new Set(records.filter((r) => r.sitio).map((r) => r.sitio));
+    const today = records.filter((r) => isSameDay(r.fecha, now)).length;
+
+    document.getElementById("statPeople").textContent = people.size;
+    document.getElementById("statToday").textContent = today;
+    document.getElementById("statSites").textContent = sites.size;
+    document.getElementById("statTotal").textContent = records.length;
+    document.getElementById("statRow").style.display = "grid";
+  }
+
+  function renderHeroCards(records) {
+    const byPerson = new Map();
+    records.forEach((r) => {
+      const key = r.curp || r.nombreCompleto.toLowerCase();
+      const current = byPerson.get(key);
+      if (!current || (r.fecha && (!current.fecha || r.fecha > current.fecha))) {
+        byPerson.set(key, r);
+      }
+    });
+
+    const people = Array.from(byPerson.values()).sort((a, b) => a.nombreCompleto.localeCompare(b.nombreCompleto));
+    const grid = document.getElementById("heroGrid");
+    const now = new Date();
+
+    grid.innerHTML = people.map((r) => {
+      const hoursSince = r.fecha ? (now - r.fecha) / 36e5 : Infinity;
+      const fresh = hoursSince <= 12;
+      return `
+        <div class="hero-card">
+          <div class="hero-top">
+            <div class="avatar">${escapeHtml(initials(r.nombre, r.apPaterno))}</div>
+            <div>
+              <div class="hero-name">${escapeHtml(r.nombreCompleto)}</div>
+              <div class="hero-role">${escapeHtml(r.puesto || "Puesto no especificado")}${r.empresa ? " &middot; " + escapeHtml(r.empresa) : ""}</div>
+            </div>
+            <span class="status-pill ${fresh ? "ok" : "stale"}">
+              <svg class="icon" style="width:12px;height:12px"><use href="#icon-check"/></svg>
+              ${fresh ? "Registrado" : "Sin registro reciente"}
+            </span>
+          </div>
+          <div class="hero-divider"></div>
+          <div class="hero-time">${fmtTime(r.fecha)}</div>
+          <div class="hero-date">${escapeHtml(r.fecha ? fmtDateTime(r.fecha) : r.marcaTemporal || "Sin fecha")}</div>
+          <div class="hero-detail"><svg class="icon"><use href="#icon-place"/></svg> ${escapeHtml(r.sitio || "Sitio no especificado")}</div>
+          <div class="hero-detail"><svg class="icon"><use href="#icon-verified"/></svg> Guardia: ${escapeHtml(r.usuarioGuardia || "—")}</div>
+        </div>
+      `;
+    }).join("");
+
+    document.getElementById("heroSection").style.display = people.length ? "block" : "none";
+  }
+
+  function renderTable(records, filterText) {
+    const tbody = document.getElementById("tableBody");
+    const sorted = [...records].sort((a, b) => {
+      if (a.fecha && b.fecha) return b.fecha - a.fecha;
+      if (a.fecha) return -1;
+      if (b.fecha) return 1;
+      return 0;
+    });
+
+    const term = (filterText || "").trim().toLowerCase();
+    const filtered = term
+      ? sorted.filter((r) =>
+          r.nombreCompleto.toLowerCase().includes(term) ||
+          r.sitio.toLowerCase().includes(term) ||
+          r.empresa.toLowerCase().includes(term))
+      : sorted;
+
+    if (!filtered.length) {
+      tbody.innerHTML = `<tr class="empty-row"><td colspan="6">Sin registros que coincidan.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = filtered.map((r) => `
+      <tr>
+        <td>
+          <div>${escapeHtml(fmtTime(r.fecha))}</div>
+          <div class="cell-sub">${escapeHtml(r.fecha ? new Intl.DateTimeFormat("es-MX", { dateStyle: "medium" }).format(r.fecha) : (r.marcaTemporal || "—"))}</div>
+        </td>
+        <td>
+          <div class="cell-name">${escapeHtml(r.nombreCompleto)}</div>
+          <div class="cell-sub">${escapeHtml(r.curp || "")}</div>
+        </td>
+        <td>${r.sitio ? `<span class="badge-site">${escapeHtml(r.sitio)}</span>` : "—"}</td>
+        <td>
+          <div>${escapeHtml(r.empresa || "—")}</div>
+          <div class="cell-sub">${escapeHtml(r.puesto || "")}</div>
+        </td>
+        <td>${escapeHtml(r.usuarioGuardia || "—")}</td>
+        <td class="mono">${escapeHtml(r.qrEscaneado || "—")}</td>
+      </tr>
+    `).join("");
+  }
+
+  function renderAll() {
+    const term = document.getElementById("searchInput").value;
+    renderStats(allRecords);
+    renderHeroCards(allRecords);
+    renderTable(allRecords, term);
+  }
+
+  async function loadData(isManual) {
+    const btn = document.getElementById("refreshBtn");
+    btn.classList.add("spinning");
+    try {
+      if (GRID_DOC_ID === "__GRID_DOC_ID__") {
+        throw new Error("SETUP");
+      }
+      Grid.configure({ docId: GRID_DOC_ID });
+      const data = await Grid.sheets.get(SHEET_ID, SHEET_RANGE);
+      allRecords = parseRows(data.values);
+      if (!allRecords.length) {
+        showBanner("loading", "La pestaña <b>moro</b> no tiene registros todavía.");
+      } else if (document.querySelector(".state-banner.error") === null) {
+        showBanner(null);
+      }
+      renderAll();
+      document.getElementById("updatedAt").textContent =
+        "Actualizado " + new Intl.DateTimeFormat("es-MX", { timeStyle: "medium" }).format(new Date());
+    } catch (err) {
+      console.error(err);
+      if (err && err.message === "SETUP") {
+        showBanner("error",
+          "Este documento aún no tiene su <b>doc_id</b> configurado. Sube esta versión a Grid, copia el " +
+          "<code>doc_id</code> que te devuelve, reemplázalo en <code>GRID_DOC_ID</code> y vuelve a subir el archivo."
+        );
+      } else {
+        showBanner("error",
+          "No se pudo leer la hoja de cálculo. Verifica que la cuenta de Google del dueño de este documento " +
+          "esté conectada en Grid (Configuración &rarr; Conectar Google) y que la pestaña <b>moro</b> exista en el spreadsheet."
+        );
+      }
+    } finally {
+      btn.classList.remove("spinning");
+    }
+  }
+
+  document.getElementById("refreshBtn").addEventListener("click", () => loadData(true));
+  document.getElementById("searchInput").addEventListener("input", renderAll);
+
+  loadData(false);
+  setInterval(() => loadData(false), AUTO_REFRESH_MS);
+</script>
+
+</body>
+</html>
