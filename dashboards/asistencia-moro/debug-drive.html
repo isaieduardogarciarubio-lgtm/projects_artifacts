@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diagnóstico Drive · Grid</title>
+<style>
+  body { font-family: 'Roboto', 'Helvetica Neue', Arial, sans-serif; background: #F7FAFC; color: #1f2733; margin: 0; padding: 24px; }
+  #app { max-width: 820px; margin: 0 auto; }
+  h1 { font-size: 18px; margin-bottom: 4px; }
+  p.sub { color: #A0AEC0; font-size: 13px; margin-top: 0; }
+  .card { background: #fff; border-radius: 15px; box-shadow: 0px 3.5px 5.5px rgba(0,0,0,.05); padding: 20px; margin-bottom: 16px; }
+  .card h2 { font-size: 14px; margin: 0 0 12px; }
+  input[type=text] {
+    width: 100%; padding: 10px 12px; border: 1px solid #E2E8F0; border-radius: 10px;
+    font-size: 13px; font-family: inherit; box-sizing: border-box;
+  }
+  button {
+    background: #4FD1C5; color: #fff; border: none; border-radius: 10px; padding: 10px 18px;
+    font-weight: 700; font-size: 13px; cursor: pointer; margin-top: 10px;
+  }
+  button:disabled { background: #CBD5E0; cursor: default; }
+  .row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #F7FAFC; font-size: 13px; }
+  .row:last-child { border-bottom: none; }
+  .row .label { min-width: 260px; color: #4A5568; }
+  .status { font-weight: 700; padding: 2px 10px; border-radius: 999px; font-size: 11px; text-transform: uppercase; }
+  .status.ok { background: rgba(72,187,120,.15); color: #2F855A; }
+  .status.fail { background: rgba(245,101,101,.15); color: #C53030; }
+  .status.pending { background: #EDF2F7; color: #718096; }
+  pre {
+    background: #1A202C; color: #E2E8F0; padding: 12px; border-radius: 10px; font-size: 12px;
+    overflow-x: auto; white-space: pre-wrap; word-break: break-all; margin: 8px 0 0;
+  }
+  .thumb-preview { width: 60px; height: 60px; border-radius: 8px; object-fit: cover; border: 1px solid #E2E8F0; }
+  .hint { font-size: 12px; color: #A0AEC0; margin-top: 4px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <h1>🔧 Diagnóstico: acceso a Google Drive desde Grid</h1>
+  <p class="sub">Prueba aislada para ver exactamente qué falla al intentar mostrar una foto desde Drive. No depende del dashboard de asistencia.</p>
+
+  <div class="card">
+    <h2>1. Identidad y conexión con Google</h2>
+    <div id="identitySection">
+      <div class="row"><span class="label">GET /api/v1/me</span><span class="status pending" id="st-me">Cargando…</span></div>
+      <div class="row"><span class="label">GET /api/v1/google/oauth/status</span><span class="status pending" id="st-oauth">Cargando…</span></div>
+    </div>
+    <pre id="log-identity">(esperando resultados)</pre>
+  </div>
+
+  <div class="card">
+    <h2>2. Probar una foto de Drive</h2>
+    <p class="hint">Pega el enlace de Drive tal cual aparece en la columna K de la hoja (ej. https://drive.google.com/open?id=XXXX), o solo el ID del archivo.</p>
+    <input type="text" id="driveUrlInput" placeholder="https://drive.google.com/open?id=...">
+    <button id="testBtn">Probar este archivo</button>
+
+    <div id="results" style="margin-top:16px; display:none;">
+      <div class="row"><span class="label">ID extraído</span><span id="fileIdOut">—</span></div>
+      <div class="row"><span class="label">GET /api/v1/google/drive/files/{id}</span><span class="status pending" id="st-meta">—</span></div>
+      <div class="row"><span class="label">GET /api/v1/google/drive/files/{id}/download</span><span class="status pending" id="st-google-download">—</span></div>
+      <div class="row"><span class="label">GET /api/v1/drive/files/{id}/download</span><span class="status pending" id="st-plain-download">—</span></div>
+      <div class="row"><span class="label">Miniatura pública (drive.google.com/thumbnail)</span><span class="status pending" id="st-thumb">—</span> <img id="thumbPreview" class="thumb-preview" style="display:none"></div>
+      <pre id="log-drive">(esperando resultados)</pre>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Cómo leer esto</h2>
+    <p class="hint">
+      • Si <b>oauth/status</b> dice que no hay Google conectado: conéctalo en
+      <code>https://grid.melioffice.com/google/oauth/start</code> y vuelve a probar.<br>
+      • Si <b>oauth/status</b> está OK pero <b>files/{id}/download</b> falla con 403/404: lo más probable es que el archivo
+      no sea tuyo o no esté compartido con tu cuenta de Google conectada en Grid.<br>
+      • Si la <b>miniatura pública</b> funciona pero los endpoints de Grid no: el archivo sí es público, y en el dashboard
+      real ya debería mostrarse por esa vía (revisa la consola del navegador por errores de red).<br>
+      • Copia el contenido de las cajas negras (<code>pre</code>) y pásamelo tal cual — ahí queda el detalle exacto de cada intento.
+    </p>
+  </div>
+</div>
+
+<script>
+  function setStatus(id, ok, text) {
+    const el = document.getElementById(id);
+    el.className = "status " + (ok ? "ok" : "fail");
+    el.textContent = text || (ok ? "OK" : "FALLÓ");
+  }
+
+  function appendLog(id, text) {
+    const el = document.getElementById(id);
+    el.textContent = (el.textContent === "(esperando resultados)" ? "" : el.textContent + "\n\n") + text;
+  }
+
+  async function describeResponse(label, promiseFactory) {
+    try {
+      const res = await promiseFactory();
+      const contentType = res.headers.get("content-type") || "(sin content-type)";
+      let bodyPreview = "";
+      if (contentType.includes("application/json") || contentType.includes("text/")) {
+        bodyPreview = (await res.clone().text()).slice(0, 500);
+      } else {
+        const blob = await res.clone().blob();
+        bodyPreview = `[binario] ${blob.size} bytes, tipo ${blob.type}`;
+      }
+      return { ok: res.ok, status: res.status, contentType, bodyPreview, res };
+    } catch (err) {
+      return { ok: false, status: "network-error", contentType: "-", bodyPreview: String(err), res: null };
+    }
+  }
+
+  function extractDriveFileId(url) {
+    if (!url) return null;
+    const s = String(url).trim();
+    const patterns = [
+      /[?&]id=([a-zA-Z0-9_-]{10,})/,
+      /\/file\/d\/([a-zA-Z0-9_-]{10,})/,
+      /\/d\/([a-zA-Z0-9_-]{10,})/,
+    ];
+    for (const re of patterns) {
+      const m = s.match(re);
+      if (m) return m[1];
+    }
+    // si ya es solo el ID (sin URL alrededor)
+    return /^[a-zA-Z0-9_-]{10,}$/.test(s) ? s : null;
+  }
+
+  async function runIdentityChecks() {
+    const me = await describeResponse("me", () => fetch("/api/v1/me", { credentials: "include" }));
+    setStatus("st-me", me.ok, me.ok ? "OK (" + me.status + ")" : "FALLÓ (" + me.status + ")");
+    appendLog("log-identity", "GET /api/v1/me -> " + me.status + " " + me.contentType + "\n" + me.bodyPreview);
+
+    const oauth = await describeResponse("oauth", () => fetch("/api/v1/google/oauth/status", { credentials: "include" }));
+    setStatus("st-oauth", oauth.ok, oauth.ok ? "OK (" + oauth.status + ")" : "FALLÓ (" + oauth.status + ")");
+    appendLog("log-identity", "GET /api/v1/google/oauth/status -> " + oauth.status + " " + oauth.contentType + "\n" + oauth.bodyPreview);
+  }
+
+  function testThumbnail(fileId) {
+    return new Promise((resolve) => {
+      const url = `https://drive.google.com/thumbnail?id=${fileId}&sz=w200`;
+      const img = document.getElementById("thumbPreview");
+      img.style.display = "none";
+      const test = new Image();
+      test.onload = () => {
+        img.src = url;
+        img.style.display = "inline-block";
+        resolve({ ok: true, status: "loaded", url });
+      };
+      test.onerror = () => resolve({ ok: false, status: "onerror (bloqueado, privado, o sin red)", url });
+      test.src = url;
+    });
+  }
+
+  document.getElementById("testBtn").addEventListener("click", async () => {
+    const raw = document.getElementById("driveUrlInput").value;
+    const fileId = extractDriveFileId(raw);
+    document.getElementById("results").style.display = "block";
+    document.getElementById("fileIdOut").textContent = fileId || "(no se pudo extraer un ID de ese texto)";
+    document.getElementById("log-drive").textContent = "(esperando resultados)";
+    if (!fileId) return;
+
+    const meta = await describeResponse("meta", () => fetch(`/api/v1/google/drive/files/${fileId}`, { credentials: "include" }));
+    setStatus("st-meta", meta.ok, meta.status);
+    appendLog("log-drive", `GET /api/v1/google/drive/files/${fileId} -> ${meta.status} ${meta.contentType}\n${meta.bodyPreview}`);
+
+    const googleDownload = await describeResponse("google-download", () => fetch(`/api/v1/google/drive/files/${fileId}/download`, { credentials: "include" }));
+    setStatus("st-google-download", googleDownload.ok, googleDownload.status);
+    appendLog("log-drive", `GET /api/v1/google/drive/files/${fileId}/download -> ${googleDownload.status} ${googleDownload.contentType}\n${googleDownload.bodyPreview}`);
+
+    const plainDownload = await describeResponse("plain-download", () => fetch(`/api/v1/drive/files/${fileId}/download`, { credentials: "include" }));
+    setStatus("st-plain-download", plainDownload.ok, plainDownload.status);
+    appendLog("log-drive", `GET /api/v1/drive/files/${fileId}/download -> ${plainDownload.status} ${plainDownload.contentType}\n${plainDownload.bodyPreview}`);
+
+    const thumb = await testThumbnail(fileId);
+    setStatus("st-thumb", thumb.ok, thumb.status);
+    appendLog("log-drive", `IMG ${thumb.url} -> ${thumb.status}`);
+  });
+
+  runIdentityChecks();
+</script>
+</body>
+</html>
