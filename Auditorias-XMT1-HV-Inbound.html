@@ -11909,16 +11909,31 @@ window.addEventListener('offline', () => {
   const COLUMNS = ['ROUTE_ID','DRIVER_ID','TOTAL_SHIPMENT','SHIPMENT_ID','DESCRIPCION','COSTO_MXN','FECHA_ASIGNACION_DOCA','FECHA_CHECKOUT_DOCA','PLACA','DOCA','ESTATUS_RUTA'];
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const norm = value => String(value ?? '').trim().normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/\s+/g,' ');
-  // DD/MM/YYYY HH:mm:ss, supplied by the operator; UTC-6 in Mexico City.
+  // Grid can display dates as DD/MM/YYYY HH:mm:ss or as the source's
+  // ISO-like YYYY-MM-DD HH:mm:ss.fraction. Unzoned dates use Mexico City.
   function dateMs(value) {
-    const raw = String(value ?? '').trim();
-    if (!raw) return Infinity;
-    const match = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
-    if (!match) return Infinity;
-    const [,d,m,y,h='0',min='0',s='0'] = match;
-    const local = new Date(Date.UTC(+y,+m-1,+d,+h,+min,+s));
-    if (local.getUTCFullYear() !== +y || local.getUTCMonth() !== +m-1 || local.getUTCDate() !== +d || +h>23 || +min>59 || +s>59) return Infinity;
+    const raw=String(value ?? '').trim();
+    const dayFirst=raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2})(?:\.(\d{1,9}))?)?)?$/);
+    const iso=raw.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2})(?:\.(\d{1,9}))?)?)?(Z|[+-]\d{2}:?\d{2})?$/i);
+    if(!dayFirst && !iso) return Infinity;
+    const [,a,b,c,h='0',min='0',sec='0',fraction='']=dayFirst || iso;
+    const [y,m,d]=dayFirst ? [+c,+b,+a] : [+a,+b,+c];
+    const local=new Date(Date.UTC(y,m-1,d,+h,+min,+sec,+fraction.slice(0,3).padEnd(3,'0')));
+    if(local.getUTCFullYear()!==y || local.getUTCMonth()!==m-1 || local.getUTCDate()!==d || +h>23 || +min>59 || +sec>59) return Infinity;
+    const zone=iso?.[8];
+    if(zone?.toUpperCase()==='Z') return local.getTime();
+    if(zone) {
+      const offset=zone.match(/^([+-])(\d{2}):?(\d{2})$/);
+      if(!offset || +offset[2]>23 || +offset[3]>59) return Infinity;
+      return local.getTime()-(offset[1]==='+' ? 1:-1)*(+offset[2]*60 + +offset[3])*60*1000;
+    }
     return local.getTime()+6*60*60*1000;
+  }
+  function routeStatus(value) {
+    const status=norm(value);
+    if(['ruta en descarga','en descarga'].includes(status)) return 'unloading';
+    if(['espera de descarga','en espera de descarga','ruta en espera de descarga'].includes(status)) return 'waiting';
+    return null;
   }
   function groupRoutes(rows) {
     const grouped = new Map();
@@ -11929,8 +11944,8 @@ window.addEventListener('offline', () => {
     }
     return [...grouped].map(([id, routeRows]) => {
       // All rows in a route are expected to share route metadata.
-      const unloading = routeRows.some(r => norm(r.ESTATUS_RUTA) === 'ruta en descarga');
-      const waiting = routeRows.some(r => norm(r.ESTATUS_RUTA) === 'espera de descarga');
+      const unloading = routeRows.some(r => routeStatus(r.ESTATUS_RUTA) === 'unloading');
+      const waiting = routeRows.some(r => routeStatus(r.ESTATUS_RUTA) === 'waiting');
       if (!unloading && !waiting) return null;
       const metadata = Object.fromEntries(COLUMNS.map(c => [c, routeRows.find(r => r[c])?.[c] || '']));
       const assigned = routeRows.filter(r => Number.isFinite(dateMs(r.FECHA_ASIGNACION_DOCA))).sort((a,b)=>dateMs(a.FECHA_ASIGNACION_DOCA)-dateMs(b.FECHA_ASIGNACION_DOCA))[0];
@@ -11956,7 +11971,9 @@ window.addEventListener('offline', () => {
     const missing = COLUMNS.filter(c => !normalized.includes(c));
     if (missing.length) throw new Error(`Faltan columnas en HV_INBOUND: ${missing.join(', ')}.`);
     const indexes = COLUMNS.map(c => normalized.indexOf(c));
-    return rows.filter(Array.isArray).map(row => Object.fromEntries(COLUMNS.map((c,i)=>[c,String(row[indexes[i]] ?? '').trim()]))).filter(r=>r.ROUTE_ID);
+    const catalog=rows.filter(Array.isArray).map(row => Object.fromEntries(COLUMNS.map((c,i)=>[c,String(row[indexes[i]] ?? '').trim()]))).filter(r=>r.ROUTE_ID);
+    DebugConsole.log(`HV Inbound: ${catalog.length} filas leídas de ${RANGE}; estatus: ${[...new Set(catalog.map(row=>row.ESTATUS_RUTA || '(vacío)'))].join(' | ')}`,'info');
+    return catalog;
   };
 
   // This ID is a real, created Google Sheet. Grid uses the same data_doc_id
