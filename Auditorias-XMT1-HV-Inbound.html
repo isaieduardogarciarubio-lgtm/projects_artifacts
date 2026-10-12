@@ -11959,6 +11959,132 @@ window.addEventListener('offline', () => {
     return rows.filter(Array.isArray).map(row => Object.fromEntries(COLUMNS.map((c,i)=>[c,String(row[indexes[i]] ?? '').trim()]))).filter(r=>r.ROUTE_ID);
   };
 
+  // This ID is a real, created Google Sheet. Grid uses the same data_doc_id
+  // and owner's Google OAuth connection already used for the inbound catalog.
+  const HV_INBOUND_LOG_SHEET_ID = '1OPo8fqiENgNPKcV-G7egqP3bjQHC-vQyZO9QzGHMy4M';
+  const HV_INBOUND_LOG_TAB = 'AUDIT_SHIPMENTS';
+  const LOG_COLUMNS = ['UID','TS','ROUTE_KEY','ROUTE_ID','DRIVER_ID','TOTAL_SHIPMENT','SHIPMENT_ID','DESCRIPCION','COSTO_MXN','FECHA_ASIGNACION_DOCA','FECHA_CHECKOUT_DOCA','PLACA','DOCA','ESTATUS_RUTA','ESTADO','FOTO_DOC_ID','FOTO_URL','AUDITORIA','DEDUPE_KEY','DEVICE_ID'];
+  const LOG_FIELDS = ['uid','ts','route_key','route_id','driver_id','total_shipment','shipment_id','descripcion','costo_mxn','fecha_asignacion_doca','fecha_checkout_doca','placa','doca','estatus_ruta','estado','foto','foto_url','auditoria','dedupe_key','device_id'];
+  const LOG_PAGE_ROWS = 1000;
+
+  async function logResponse(response, action) {
+    if (!response.ok) {
+      const body = await response.json().catch(()=>({}));
+      const reconnect = body.error === 'google_not_connected' || (response.status === 401 && body.error === 'google_workspace_api_error');
+      const error = new Error(reconnect
+        ? 'El dueño de la app debe reconectar Google en Grid para acceder a la bitácora.'
+        : `No se pudo ${action} la bitácora HV Inbound (HTTP ${response.status}).${response.status===403 ? ' Revisa el permiso de acceso a la hoja.':''}`);
+      if (response.status === 429) error.isRateLimited = true;
+      throw error;
+    }
+    return response.json();
+  }
+  function logRowsToRecords(rows) {
+    return rows.filter(row=>Array.isArray(row) && row[0]).map(row=>({
+      formId:FORM_ID,
+      ...Object.fromEntries(LOG_FIELDS.map((field,i)=>[field,String(row[i] ?? '')]))
+    }));
+  }
+  function sameLogRecord(saved, record) {
+    return saved && saved.uid===record.uid && saved.route_key===record.route_key &&
+      saved.shipment_id===record.shipment_id && saved.foto===record.foto &&
+      !!saved.foto && !saved.foto.startsWith('data:');
+  }
+  GridClient.prototype.readHVInboundLogRange = async function(range) {
+    const url = `${this.baseUrl}/api/v1/sheets/${encodeURIComponent(HV_INBOUND_LOG_SHEET_ID)}?doc_id=${encodeURIComponent(this.docId)}&range=${encodeURIComponent(range)}&_ts=${Date.now()}`;
+    const response = await this._fetchWithTimeout(url,{credentials:'include',cache:'no-store'});
+    const body = await logResponse(response,'leer');
+    if (Array.isArray(body?.values)) return body.values;
+    // Google omits values for an empty range. Accept only a response tied to
+    // the requested range; an empty/invalid JSON envelope remains an error.
+    if (typeof body?.range==='string' && body.range.replace(/^'AUDIT_SHIPMENTS'!/, 'AUDIT_SHIPMENTS!')===range && !Object.prototype.hasOwnProperty.call(body,'values')) return [];
+    throw new Error('La bitácora HV Inbound no devolvió una lista de filas válida.');
+  };
+  GridClient.prototype.loadHVInboundLog = async function() {
+    // A header-only sheet is a valid empty log; an absent/mismatched header is not.
+    const first = await this.readHVInboundLogRange(`${HV_INBOUND_LOG_TAB}!A1:T${LOG_PAGE_ROWS+1}`);
+    const [header,...rows] = first;
+    if (!Array.isArray(header) || header.length!==LOG_COLUMNS.length || LOG_COLUMNS.some((column,i)=>String(header[i] ?? '').trim().toUpperCase()!==column)) {
+      throw new Error('Los encabezados de la bitácora HV Inbound no coinciden con el formato esperado.');
+    }
+    const records = logRowsToRecords(rows);
+    let start = LOG_PAGE_ROWS+2, count = rows.length;
+    while (count===LOG_PAGE_ROWS) {
+      const page = await this.readHVInboundLogRange(`${HV_INBOUND_LOG_TAB}!A${start}:T${start+LOG_PAGE_ROWS-1}`);
+      records.push(...logRowsToRecords(page)); count=page.length; start+=LOG_PAGE_ROWS;
+    }
+    return records;
+  };
+  GridClient.prototype.appendHVInboundLog = async function(values) {
+    // At most 19 appends/minute per device; records are sent in batches.
+    const wait = (this._hvInboundNextAppendAt || 0)-Date.now();
+    if (wait>0) await new Promise(resolve=>setTimeout(resolve,wait));
+    this._hvInboundNextAppendAt=Date.now()+3200;
+    const url = `${this.baseUrl}/api/v1/sheets/${encodeURIComponent(HV_INBOUND_LOG_SHEET_ID)}/append?doc_id=${encodeURIComponent(this.docId)}`;
+    const response = await this._fetchWithTimeout(url,{
+      method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({range:`${HV_INBOUND_LOG_TAB}!A:T`,values})
+    });
+    return logResponse(response,'guardar');
+  };
+  CapturaApp.prototype.syncHVInboundToSheet = async function(records) {
+    // Keep photo document IDs durable before attempting any append; no base64
+    // photo data is ever written to Google Sheets.
+    const before = await this.gridClient.loadHVInboundLog();
+    const byUid = new Map(before.map(record=>[record.uid,record]));
+    const confirmed = new Set();
+    const pending = new Map();
+    for (const record of records) {
+      await this.prepareRecordAssets(record);
+      if (typeof record.foto!=='string' || !record.foto || record.foto.startsWith('data:')) {
+        throw new Error('La foto de HV Inbound aún no está lista para guardar.');
+      }
+      const existing = byUid.get(record.uid);
+      if (existing) {
+        if (!sameLogRecord(existing,record)) throw new Error(`El UID ${record.uid} ya existe con otros datos en la bitácora.`);
+        confirmed.add(record.uid);
+      } else pending.set(record.uid,record);
+    }
+    const batches=[...pending.values()];
+    // Separate <=50-row batches. If a later batch fails, already-confirmed
+    // rows are still returned, while the unconfirmed records stay local.
+    for(let offset=0;offset<batches.length;offset+=50) {
+      const batch=batches.slice(offset,offset+50);
+      try {
+        const values=batch.map(record=>LOG_FIELDS.map(field=>{
+          if(field==='foto_url') return `https://grid.adminml.com/d/${encodeURIComponent(record.foto)}/view`;
+          if(field==='device_id') return String(record.device_id || this.deviceId || '');
+          return String(record[field] ?? '');
+        }));
+        // Never retry an uncertain POST blindly. The next attempt starts by
+        // checking UIDs in the sheet, including appends whose response was lost.
+        const result=await this.gridClient.appendHVInboundLog(values);
+        let after;
+        const updatedRange=result?.updates?.updatedRange;
+        const rangeMatch=typeof updatedRange==='string' && updatedRange.match(/^'?AUDIT_SHIPMENTS'?!A(\d+):T(\d+)$/);
+        if(rangeMatch && Number(rangeMatch[2])-Number(rangeMatch[1])+1===batch.length) {
+          after=logRowsToRecords(await this.gridClient.readHVInboundLogRange(`${HV_INBOUND_LOG_TAB}!A${rangeMatch[1]}:T${rangeMatch[2]}`));
+        } else after=await this.gridClient.loadHVInboundLog();
+        const verified = new Map(after.map(record=>[record.uid,record]));
+        for(const record of batch) if(sameLogRecord(verified.get(record.uid),record)) confirmed.add(record.uid);
+        if(batch.some(record=>!confirmed.has(record.uid))) throw new Error('La bitácora no confirmó todas las filas. Las capturas pendientes se conservan en el dispositivo.');
+      } catch(error) {
+        if(!confirmed.size) throw error;
+        DebugConsole.log(`HV Inbound: ${error.message}`,'warn');
+        break;
+      }
+    }
+    DebugConsole.log(`HV Inbound: ${confirmed.size} captura(s) confirmadas en Google Sheets`,'info');
+    return [...confirmed];
+  };
+  // Preserve the application's outbox, history, photo folders and all other
+  // logs. Only HV Inbound uses the sheet instead of a master bucket.
+  const syncRecordsBatch=CapturaApp.prototype.syncRecordsBatch;
+  CapturaApp.prototype.syncRecordsBatch=function(formId,bucketName,dateKey,records,...args) {
+    if(formId===FORM_ID) return this.syncHVInboundToSheet(records);
+    return syncRecordsBatch.call(this,formId,bucketName,dateKey,records,...args);
+  };
+
   class HVInboundSession extends AuditoriaHVSession {
     constructor(app) {
       super();
@@ -11982,11 +12108,10 @@ window.addEventListener('offline', () => {
       this.container.innerHTML = `<section class="hvi-screen"><div class="hvi-heading"><button class="icon-btn-plain hvi-back" aria-label="Volver a auditorías">${Icons.svg('arrowLeft',{size:28})}</button><h1>HV Inbound</h1></div><p class="hvi-muted" role="status">Cargando rutas y avance de auditorías…</p></section>`;
       this.container.querySelector('.hvi-back').onclick=()=>this.exitToMenu();
       try {
-        const [rows, bucket] = await Promise.all([this.app.gridClient.loadHVInboundCatalog(),this.app.gridClient.getStateBucket('hv_inbound_master')]);
+        const [rows, savedRecords] = await Promise.all([this.app.gridClient.loadHVInboundCatalog(),this.app.gridClient.loadHVInboundLog()]);
         if (!this.alive || generation !== this.generation) return;
-        if (bucket && (!Array.isArray(bucket.records) || (!bucket.records.length && bucket.initialized !== true))) throw new Error('No se pudo confirmar el avance guardado. Intenta actualizar.');
         this.routes = groupRoutes(rows);
-        this.records = [...(bucket?.records || []),...this.app.outboxRecords.filter(r=>r.formId===FORM_ID),...(this.app._hvInboundSessionRecords || [])];
+        this.records = [...savedRecords,...this.app.outboxRecords.filter(r=>r.formId===FORM_ID),...(this.app._hvInboundSessionRecords || [])];
         this.renderDashboard();
       } catch(error) {
         if (!this.alive || generation !== this.generation) return;
@@ -12111,7 +12236,7 @@ window.addEventListener('offline', () => {
     }
     renderComplete() {
       this.reset('complete'); const route=this.currentRoute;
-      this.container.innerHTML=`<section class="hvi-screen"><div class="hvi-heading"><h1>Auditoría completa</h1></div><div class="hvi-complete-icon">${Icons.svg('checkCircle',{size:56})}</div><p role="status">Todos los shipments HV de la ruta ${esc(route.id)} tienen escaneo y foto confirmada.</p>${this.progress(route)}<p class="hvi-muted">Los registros están guardados en el dispositivo. Las capturas pendientes se sincronizan con Grid automáticamente.</p><div class="hvi-actions"><button class="btn btn-primary btn-block hvi-close">Cerrar auditoría</button></div></section>`;
+      this.container.innerHTML=`<section class="hvi-screen"><div class="hvi-heading"><h1>Auditoría completa</h1></div><div class="hvi-complete-icon">${Icons.svg('checkCircle',{size:56})}</div><p role="status">Todos los shipments HV de la ruta ${esc(route.id)} tienen escaneo y foto confirmada.</p>${this.progress(route)}<p class="hvi-muted">Los registros están guardados en el dispositivo. Las capturas pendientes se sincronizan con la bitácora automáticamente.</p><div class="hvi-actions"><button class="btn btn-primary btn-block hvi-close">Cerrar auditoría</button></div></section>`;
       this.container.querySelector('.hvi-close').onclick=()=>this.renderDetail();
     }
     async cancelPhoto() {
@@ -12141,7 +12266,7 @@ window.addEventListener('offline', () => {
   }
 
   CapturaApp.prototype.saveHVInboundRecord = async function(values) {
-    const record={uid:RecordStore.genUid(FORM_ID),ts:new Date().toISOString(),formId:FORM_ID,...values,auditoria:this.userLdap,dedupe_key:JSON.stringify([FORM_ID,values.route_key,values.shipment_id])};
+    const record={uid:RecordStore.genUid(FORM_ID),ts:new Date().toISOString(),formId:FORM_ID,...values,auditoria:this.userLdap,device_id:this.deviceId,dedupe_key:JSON.stringify([FORM_ID,values.route_key,values.shipment_id])};
     // Only count completion after the entire shipment + photo is durable in IndexedDB.
     await RecordStore.put(record.uid,FORM_ID,record);
     this.outboxRecords.push(record);
